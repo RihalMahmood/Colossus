@@ -1,5 +1,7 @@
 # 🏛️ Colossus
 
+![Colossus Logo](./frontend/Colossus/public/images/Colossus.png)
+
 ### Many drives. One titan.
 
 **Colossus** is an open-source cloud storage platform that merges multiple Google Drive accounts into a single, unified storage pool. Connect as many Google Drive accounts as you want — Colossus handles the rest, automatically splitting large files across drives and reassembling them seamlessly on download.
