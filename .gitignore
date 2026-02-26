@@ -1,4 +1,4 @@
-#Environment variables — NEVER commit these
+#Environment variables
 backend/.env
 .env
 
