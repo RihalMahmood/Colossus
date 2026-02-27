@@ -16,7 +16,7 @@ function getAuthUrl(userId) {
   const oauth2Client = createOAuthClient();
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",  // Force refresh_token to be returned every time
+    prompt: "consent",  //Force refresh_token to be returned every time
     scope: [
       "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/userinfo.email",
@@ -46,7 +46,7 @@ async function getDriveClient(driveAccount, user) {
     expiry_date: driveAccount.tokenExpiry ? new Date(driveAccount.tokenExpiry).getTime() : null,
   });
 
-  //Handle token refresh automatically
+  //Handle token refresh automatically, so user doesn't have to re-authenticate when token expires
   oauth2Client.on("tokens", async (tokens) => {
     if (tokens.access_token) {
       const account = user.driveAccounts.id(driveAccount._id);
