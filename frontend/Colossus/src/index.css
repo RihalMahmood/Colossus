@@ -1,68 +1,129 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+@layer base {
+  * {
+    box-sizing: border-box;
   }
-  a:hover {
-    color: #747bff;
+
+  html {
+    scroll-behavior: smooth;
   }
-  button {
-    background-color: #f9f9f9;
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #000;
+    color: #e2e8f0;
+    min-height: 100vh;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Syne', sans-serif;
+  }
+}
+
+@layer components {
+  /*Ibelick background*/
+  .ibelick-bg {
+    @apply absolute inset-0 -z-10 h-full w-full;
+    background: radial-gradient(125% 125% at 50% 10%, #000 40%, #63e 100%);
+  }
+
+  /*Glass card*/
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl border border-white/10;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-card:hover {
+    @apply border-purple-500/30;
+    background: rgba(255, 255, 255, 0.07);
+    transition: all 0.2s ease;
+  }
+
+  /*Purple glow button*/
+  .btn-glow {
+    @apply btn bg-gradient-to-r from-purple-600 to-violet-600 border-0 text-white font-display font-semibold;
+    box-shadow: 0 0 20px rgba(102, 51, 238, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .btn-glow:hover {
+    @apply from-purple-500 to-violet-500;
+    box-shadow: 0 0 30px rgba(102, 51, 238, 0.6);
+    transform: translateY(-1px);
+  }
+
+  /*Storage bar*/
+  .storage-bar {
+    @apply h-2 rounded-full overflow-hidden;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .storage-fill {
+    @apply h-full rounded-full transition-all duration-700;
+    background: linear-gradient(90deg, #6633ee, #a855f7);
+  }
+
+  /*File card*/
+  .file-card {
+    @apply glass-card p-4 cursor-pointer transition-all duration-200;
+  }
+
+  .file-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(102, 51, 238, 0.2);
+  }
+
+  /*Input field*/
+  .input-glass {
+    @apply input w-full border border-white/10 text-white placeholder-white/30;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .input-glass:focus {
+    @apply border-purple-500/50 outline-none;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /*Sidebar item*/
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 font-body font-medium transition-all duration-150 cursor-pointer;
+  }
+
+  .sidebar-item:hover {
+    @apply text-white bg-white/5;
+  }
+
+  .sidebar-item.active {
+    @apply text-white bg-white/10 border border-white/10;
+  }
+}
+
+/*Scrollbar*/
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(102, 51, 238, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 51, 238, 0.7);
+}
+
+/*Upload drop zone animation*/
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(102, 51, 238, 0.4); }
+  50% { border-color: rgba(168, 85, 247, 0.8); }
+}
+
+.drop-zone-active {
+  animation: borderGlow 1.5s ease infinite;
 }
