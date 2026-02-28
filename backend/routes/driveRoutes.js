@@ -133,7 +133,7 @@ router.delete("/:driveId", protect, async (req, res) => {
     }
 
     const removedEmail = user.driveAccounts[accountIndex].email;
-    user.driveAccounts.splice(accountIndex, 1);
+    user.driveAccounts.splice(accountIndex, 1);     //.splice can be used to remove an element from an array by index
     await user.save();
 
     res.json({ success: true, message: `Drive account ${removedEmail} disconnected.` });

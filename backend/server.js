@@ -26,12 +26,12 @@ app.get("/api/health", (req, res) => res.json({ status: "OmniCloud API running" 
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connected");
+    console.log("MongoDB connected");
     app.listen(process.env.PORT || 5000, () => {
-      console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
+      console.log(`Server running on port ${process.env.PORT || 5000}`);
     });
   })
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error(" MongoDB connection error:", err);
     process.exit(1);
   });
