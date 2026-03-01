@@ -28,7 +28,7 @@ export default function FilesPanel() {
     fetchFiles();
   }, [fetchFiles]);
 
-  //Debounced search
+  //Debounced search. Waits for 350ms of inactivity before triggering the search, to avoid excessive API calls while typing.
   useEffect(() => {
     const timer = setTimeout(() => fetchFiles(search), 350);
     return () => clearTimeout(timer);
