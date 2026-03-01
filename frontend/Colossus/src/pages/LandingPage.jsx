@@ -27,21 +27,21 @@ export default function LandingPage() {
         textFaint: "text-gray-400",
         card: "glass-card-light",
         btn: "btn-glow-light",
-        btnGhost: "btn btn-ghost border border-rose-200 text-rose-400 hover:text-rose-600 hover:border-rose-300",
-        badge: "border border-rose-300 bg-rose-50 text-rose-500",
-        accent: "text-rose-500",
+        btnGhost: "btn btn-ghost border border-[#e9e0fd] text-[#a78bfa] hover:text-[#7c3aed] hover:border-[#cab9fa]",
+        badge: "border border-[#cab9fa] bg-[#f7f4ff] text-[#8b5cf6]",
+        accent: "text-[#8b5cf6]",
         statCard: "glass-card-light",
-        featureIcon1: "text-rose-400",
-        featureIcon2: "text-pink-400",
-        featureIcon3: "text-fuchsia-400",
+        featureIcon1: "text-[#a78bfa]",
+        featureIcon2: "text-[#a78bfa]",
+        featureIcon3: "text-[#a78bfa]",
       };
 
   return (
     <div className="relative min-h-screen overflow-hidden font-body">
-      {/*Navbar*/}
+      {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? "bg-gradient-to-br from-purple-500 to-violet-700" : "bg-gradient-to-br from-rose-400 to-pink-600"}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? "bg-gradient-to-br from-purple-500 to-violet-700" : "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"}`}>
             <Cloud size={16} className="text-white" />
           </div>
           <span className={`font-display font-bold text-xl tracking-tight ${t.text}`}>Colossus</span>
@@ -53,7 +53,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/*Hero*/}
+      {/* Hero */}
       <main className="relative z-10 max-w-5xl mx-auto px-8 pt-24 pb-32 text-center animate-fade-in">
         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-body mb-8 ${t.badge}`}>
           <Zap size={14} />
@@ -62,7 +62,7 @@ export default function LandingPage() {
 
         <h1 className={`font-display text-6xl md:text-7xl font-extrabold leading-tight mb-6 ${t.text}`}>
           Many drives.{" "}
-          <span className={`bg-clip-text text-transparent ${isDark ? "bg-gradient-to-r from-purple-400 to-violet-400" : "bg-gradient-to-r from-rose-400 to-pink-500"}`}>
+          <span className={`bg-clip-text text-transparent ${isDark ? "bg-gradient-to-r from-purple-400 to-violet-400" : "bg-gradient-to-r from-[#b89ef8] to-[#cab9fa]"}`}>
             One titan.
           </span>
         </h1>
@@ -81,7 +81,7 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/*Stats*/}
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-6 mt-24 max-w-2xl mx-auto">
           {[
             { value: "15 GB", label: "per Drive account" },
@@ -95,7 +95,7 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/*Features*/}
+        {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
           {[
             { icon: <Layers size={20} className={t.featureIcon1} />, title: "Smart Chunking", desc: "Files too large for one drive? Colossus splits them automatically and reassembles on download." },
