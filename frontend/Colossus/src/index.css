@@ -14,7 +14,6 @@
   body {
     font-family: 'DM Sans', sans-serif;
     background: transparent;
-    color: #e2e8f0;
     min-height: 100vh;
   }
 
@@ -24,106 +23,155 @@
 }
 
 @layer components {
-  /*Ibelick background*/
-  .ibelick-bg {
-    @apply absolute inset-0 -z-10 h-full w-full;
-    background: radial-gradient(125% 125% at 50% 10%, #000 40%, #63e 100%);
-  }
 
-  /*Glass card*/
-  .glass-card {
+  /*GLASS CARD*/
+  .glass-card-dark {
     @apply relative overflow-hidden rounded-2xl border border-white/10;
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
-
-  .glass-card:hover {
+  .glass-card-dark:hover {
     @apply border-purple-500/30;
     background: rgba(255, 255, 255, 0.07);
     transition: all 0.2s ease;
   }
 
-  /*Purple glow button*/
-  .btn-glow {
+  .glass-card-light {
+    @apply relative overflow-hidden rounded-2xl border border-rose-200/60;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .glass-card-light:hover {
+    @apply border-rose-300;
+    background: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s ease;
+  }
+
+  /*BUTTONS*/
+  .btn-glow-dark {
     @apply btn bg-gradient-to-r from-purple-600 to-violet-600 border-0 text-white font-display font-semibold;
     box-shadow: 0 0 20px rgba(102, 51, 238, 0.4);
     transition: all 0.2s ease;
   }
-
-  .btn-glow:hover {
+  .btn-glow-dark:hover {
     @apply from-purple-500 to-violet-500;
     box-shadow: 0 0 30px rgba(102, 51, 238, 0.6);
     transform: translateY(-1px);
   }
 
-  /*Storage bar*/
-  .storage-bar {
+  .btn-glow-light {
+    @apply btn bg-gradient-to-r from-rose-400 to-pink-500 border-0 text-white font-display font-semibold;
+    box-shadow: 0 0 20px rgba(251, 113, 133, 0.4);
+    transition: all 0.2s ease;
+  }
+  .btn-glow-light:hover {
+    @apply from-rose-300 to-pink-400;
+    box-shadow: 0 0 30px rgba(251, 113, 133, 0.6);
+    transform: translateY(-1px);
+  }
+
+  /*STORAGE BAR*/
+  .storage-bar-dark {
     @apply h-2 rounded-full overflow-hidden;
     background: rgba(255, 255, 255, 0.08);
   }
+  .storage-bar-light {
+    @apply h-2 rounded-full overflow-hidden;
+    background: rgba(0, 0, 0, 0.08);
+  }
 
-  .storage-fill {
+  .storage-fill-dark {
     @apply h-full rounded-full transition-all duration-700;
     background: linear-gradient(90deg, #6633ee, #a855f7);
   }
-
-  /*File card*/
-  .file-card {
-    @apply glass-card p-4 cursor-pointer transition-all duration-200;
+  .storage-fill-light {
+    @apply h-full rounded-full transition-all duration-700;
+    background: linear-gradient(90deg, #fb7185, #f43f5e);
   }
 
-  .file-card:hover {
+  /*FILE CARD*/
+  .file-card-dark {
+    @apply glass-card-dark p-4 cursor-pointer transition-all duration-200;
+  }
+  .file-card-dark:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 30px rgba(102, 51, 238, 0.2);
   }
 
-  /*Input field*/
-  .input-glass {
+  .file-card-light {
+    @apply glass-card-light p-4 cursor-pointer transition-all duration-200;
+  }
+  .file-card-light:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(251, 113, 133, 0.2);
+  }
+
+  /*INPUTS*/
+  .input-glass-dark {
     @apply input w-full border border-white/10 text-white placeholder-white/30;
     background: rgba(255, 255, 255, 0.05);
   }
-
-  .input-glass:focus {
+  .input-glass-dark:focus {
     @apply border-purple-500/50 outline-none;
     background: rgba(255, 255, 255, 0.08);
   }
 
-  /*Sidebar item*/
-  .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 font-body font-medium transition-all duration-150 cursor-pointer;
+  .input-glass-light {
+    @apply input w-full border border-rose-200 text-gray-800 placeholder-rose-300;
+    background: rgba(255, 255, 255, 0.7);
+  }
+  .input-glass-light:focus {
+    @apply border-rose-400 outline-none;
+    background: rgba(255, 255, 255, 0.9);
   }
 
-  .sidebar-item:hover {
-    @apply text-white bg-white/5;
+  /*SIDEBAR ITEMS*/
+  .sidebar-item-dark {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 font-medium transition-all duration-150 cursor-pointer;
   }
+  .sidebar-item-dark:hover { @apply text-white bg-white/5; }
+  .sidebar-item-dark.active { @apply text-white bg-white/10 border border-white/10; }
 
-  .sidebar-item.active {
-    @apply text-white bg-white/10 border border-white/10;
+  .sidebar-item-light {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 font-medium transition-all duration-150 cursor-pointer;
   }
+  .sidebar-item-light:hover { @apply text-rose-600 bg-rose-50; }
+  .sidebar-item-light.active { @apply text-rose-600 bg-rose-100 border border-rose-200; }
 }
 
-/*Scrollbar*/
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(102, 51, 238, 0.4);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(102, 51, 238, 0.7);
-}
+/*SCROLLBARS*/
+.dark-scroll::-webkit-scrollbar { width: 6px; }
+.dark-scroll::-webkit-scrollbar-track { background: transparent; }
+.dark-scroll::-webkit-scrollbar-thumb { background: rgba(102, 51, 238, 0.4); border-radius: 3px; }
+.dark-scroll::-webkit-scrollbar-thumb:hover { background: rgba(102, 51, 238, 0.7); }
 
-/*Upload drop zone animation*/
-@keyframes borderGlow {
+.light-scroll::-webkit-scrollbar { width: 6px; }
+.light-scroll::-webkit-scrollbar-track { background: transparent; }
+.light-scroll::-webkit-scrollbar-thumb { background: rgba(251, 113, 133, 0.4); border-radius: 3px; }
+.light-scroll::-webkit-scrollbar-thumb:hover { background: rgba(251, 113, 133, 0.7); }
+
+/*DROP ZONE ANIMATIONS*/
+@keyframes borderGlowDark {
   0%, 100% { border-color: rgba(102, 51, 238, 0.4); }
   50% { border-color: rgba(168, 85, 247, 0.8); }
 }
-
-.drop-zone-active {
-  animation: borderGlow 1.5s ease infinite;
+@keyframes borderGlowLight {
+  0%, 100% { border-color: rgba(251, 113, 133, 0.4); }
+  50% { border-color: rgba(244, 63, 94, 0.8); }
 }
+.drop-zone-active-dark { animation: borderGlowDark 1.5s ease infinite; }
+.drop-zone-active-light { animation: borderGlowLight 1.5s ease infinite; }
+
+/*ANIMATIONS*/
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+.animate-slide-up { animation: slideUp 0.4s ease forwards; }
