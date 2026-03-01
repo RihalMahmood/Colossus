@@ -1,6 +1,6 @@
 # 🏛️ Colossus
 
-![Colossus Logo](./frontend/Colossus/public/images/Colossus.png)
+![Colossus Logo](./frontend/Colossus/public/images/icon_nobg.png)
 
 ### Many drives. One titan.
 
