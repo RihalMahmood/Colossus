@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/dashboard/Sidebar";
 import FilesPanel from "../components/files/FilesPanel";
 import DrivesPanel from "../components/drives/DrivesPanel";
@@ -9,6 +10,7 @@ import toast from "react-hot-toast";
 
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
+  const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState("files");
 
   //If returning from OAuth callback with ?tab=drives, switch to drives tab
@@ -27,6 +29,12 @@ export default function DashboardPage() {
     }
   };
 
+  const subtitles = {
+    files: "All files across all your connected drives",
+    drives: "Manage your connected Google Drive accounts",
+    storage: "Monitor your storage usage across all drives",
+  };
+
   return (
     <div className="relative flex h-screen overflow-hidden font-body">
       {/*Ibelick background
@@ -40,15 +48,13 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto px-6 py-8">
           {/*Page title*/}
           <div className="mb-8">
-            <h1 className="font-display text-3xl font-bold text-white">
+            <h1 className={`font-display text-3xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
               {activeTab === "files" && "My Files"}
               {activeTab === "drives" && "Drive Accounts"}
               {activeTab === "storage" && "Storage Overview"}
             </h1>
-            <p className="text-white/30 font-body mt-1">
-              {activeTab === "files" && "All files across all your connected drives"}
-              {activeTab === "drives" && "Manage your connected Google Drive accounts"}
-              {activeTab === "storage" && "Monitor your storage usage across all drives"}
+            <p className={`font-body mt-1 ${isDark ? "text-white/30" : "text-gray-400"}`}>
+              {subtitles[activeTab]}
             </p>
           </div>
 
