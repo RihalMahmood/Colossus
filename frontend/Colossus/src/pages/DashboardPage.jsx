@@ -29,8 +29,8 @@ export default function DashboardPage() {
 
   return (
     <div className="relative flex h-screen overflow-hidden font-body">
-      {/*Ibelick background*/}
-      <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
+      {/*Ibelick background
+      <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>*/}
 
       {/*Sidebar*/}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />

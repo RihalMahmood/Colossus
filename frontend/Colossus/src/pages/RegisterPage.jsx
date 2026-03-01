@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center font-body">
-      <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
+      {/*<div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>*/}
 
       <div className="w-full max-w-md px-4 animate-slide-up">
         <div className="flex flex-col items-center mb-8">

@@ -4,10 +4,10 @@ import { Cloud, Layers, Zap, Shield, ChevronRight, Github } from "lucide-react";
 export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden font-body">
-      {/*Ibelick background*/}
+      {/*Ibelick background -> Added globally in App.jsx
       <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
 
-      {/*Navbar*/}
+      Navbar*/}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center">
