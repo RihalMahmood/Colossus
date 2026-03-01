@@ -1,11 +1,13 @@
-import { Cloud, HardDrive, Files, LogOut } from "lucide-react";
+import { Cloud, HardDrive, Files, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { getInitials } from "../../utils/helpers";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -24,11 +26,19 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     //Sidebar
     <aside className="flex flex-col w-64 h-screen border-r border-white/5 bg-black/20 backdrop-blur-xl py-6 px-3 shrink-0">
       {/*Logo*/}
-      <div className="flex items-center gap-2 px-4 mb-8">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center">
-          <Cloud size={16} className="text-white" />
+      <div className="flex items-center justify-between px-4 mb-8">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center">
+            <Cloud size={16} className="text-white" />
+          </div>
+          <span className="font-display font-bold text-lg text-white tracking-tight">Colossus</span>
         </div>
-        <span className="font-display font-bold text-lg text-white tracking-tight">Colossus</span>
+        <button
+          onClick={toggleTheme}
+          className="btn btn-ghost btn-xs text-white/40 hover:text-white"
+        >
+          {isDark ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
       </div>
 
       {/*Nav*/}
