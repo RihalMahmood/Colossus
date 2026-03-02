@@ -70,7 +70,7 @@
   }
 
   .btn-glow-light {
-    @apply btn bg-gradient-to-r from-[#b89ef8] to-[#cab9fa] border-0 text-black font-display font-semibold;
+    @apply btn bg-gradient-to-r from-[#b89ef8] to-[#cab9fa] border-0 text-gray-900 font-display font-semibold;
     box-shadow: 0 0 20px rgba(124, 77, 255, 0.15);
     transition: all 0.2s ease;
   }
@@ -133,7 +133,7 @@
   }
 
   .input-glass-light {
-    @apply input w-full border border-[#e9e0fd] text-gray-800 placeholder-[#c4b5fd];
+    @apply input w-full border border-[#e9e0fd] text-gray-800 placeholder-gray-400;
     background: rgba(255, 255, 255, 0.7);
   }
 
@@ -156,15 +156,15 @@
   }
 
   .sidebar-item-light {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-[#a78bfa] font-medium transition-all duration-150 cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all duration-150 cursor-pointer;
   }
 
   .sidebar-item-light:hover {
-    @apply text-[#7c3aed] bg-[#f7f4ff];
+    @apply text-gray-900 bg-gray-50;
   }
 
   .sidebar-item-light.active {
-    @apply text-[#7c3aed] bg-[#f0ebfe] border border-[#e9e0fd];
+    @apply text-gray-900 bg-gray-50 border border-gray-50;
   }
 }
 

@@ -62,7 +62,9 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       <div className={`border-t pt-4 mt-4 ${isDark ? "border-white/5" : "border-[#f0ebfe]"}`}>
         <div className="flex items-center gap-3 px-4 py-3">
           <div className={
-            `w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-display font-bold shrink-0 ${isDark ? "bg-gradient-to-br from-purple-600 to-violet-700" : "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"
+            `w-9 h-9 rounded-full flex items-center justify-center ${isDark ? "text-white" : "text-gray-900"} 
+            text-sm font-display font-bold shrink-0 ${isDark ? "bg-gradient-to-br from-purple-600 to-violet-700" :
+              "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"
             }`}>
             {getInitials(user?.name)}
           </div>

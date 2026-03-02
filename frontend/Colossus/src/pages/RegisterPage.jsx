@@ -50,8 +50,8 @@ export default function RegisterPage() {
     input: "input-glass-light",
     btn: "btn-glow-light",
     link: "text-[#8b5cf6] hover:text-[#a78bfa]",
-    iconColor: "text-[#c4b5fd]",
-    eyeColor: "text-[#c4b5fd] hover:text-[#8b5cf6]"
+    iconColor: "text-gray-400",
+    eyeColor: "text-gray-400 hover:text-gray-500"
   };
 
   return (

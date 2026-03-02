@@ -50,8 +50,8 @@ export default function FilesPanel() {
     <button
       onClick={() => setViewMode(mode)}
       className={`p-2 rounded-lg transition-all ${viewMode === mode
-        ? isDark ? "bg-purple-600 text-white" : "bg-[#cab9fa] text-white"
-        : isDark ? "text-white/30 hover:text-white" : "text-gray-400 hover:text-gray-700"
+        ? isDark ? "bg-purple-600 text-white" : "bg-[#cab9fa] text-gray-900"
+        : isDark ? "text-white/30 hover:text-white" : "text-gray-400 hover:text-gray-900"
         }`}
     >
       {icon}
@@ -65,7 +65,7 @@ export default function FilesPanel() {
         {/*Search*/}
         <div className="relative flex-1">
           <Search size={16} className={
-            `absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? "text-white/30" : "text-[#c4b5fd]"}`
+            `absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? "text-white/30" : "text-gray-400"}`
           } />
           <input
             type="text"
@@ -78,8 +78,8 @@ export default function FilesPanel() {
 
         {/*View toggle*/}
         <div className={
-          `flex items-center rounded-xl p-1 gap-1 border ${isDark ? "bg-white/5 border-white/10" : "bg-white/60 border-[#f0ebfe]"
-
+          `flex items-center rounded-xl p-1 gap-1 border ${isDark ?
+            "bg-white/5 border-white/10" : "bg-gray-50 border-gray-100"
           }`}>
           {viewBtn("grid", <Grid size={15} />)}
           {viewBtn("list", <List size={15} />)}
@@ -89,9 +89,9 @@ export default function FilesPanel() {
         <button
           onClick={() => setShowUpload(!showUpload)}
           className={`btn btn-sm gap-2 ${showUpload
-            ? isDark ? "bg-purple-600 text-white border-0" : "bg-[#cab9fa] text-white border-0"
+            ? isDark ? "bg-purple-600 text-white border-0 hover:bg-purple-500" : "bg-[#cab9fa] text-gray-900 border-0 hover:bg-[#b89ef8]"
             : isDark ? "bg-white/5 border border-white/10 text-white/60 hover:text-white"
-              : "bg-white/60 border border-[#e9e0fd] text-[#a78bfa] hover:text-[#7c3aed]"
+              : "bg-gray-50 border border-gray-100 text-gray-500 hover:bg-[#f0ebfe] hover:text-gray-900 hover:border-[#cab9fa]"
             }`}
         >
           <Upload size={14} />
@@ -115,7 +115,7 @@ export default function FilesPanel() {
         </div>
       ) : files.length === 0 ? (
         <div className="text-center py-20">
-          <FileX size={48} className={`mx-auto mb-4 ${isDark ? "text-white/10" : "text-[#cab9fa]"}`} />
+          <FileX size={48} className={`mx-auto mb-4 ${isDark ? "text-white/10" : "text-gray-100"}`} />
           <p className={`text-lg font-body ${isDark ? "text-white/30" : "text-gray-400"}`}>
             {search ? `No files matching "${search}"` : "No files yet"}
           </p>

@@ -31,7 +31,7 @@ export default function LoginPage() {
 
   const t = isDark
     ? { text: "text-white", textMuted: "text-white/40", textSub: "text-white/60", card: "glass-card-dark", input: "input-glass-dark", btn: "btn-glow-dark", link: "text-purple-400 hover:text-purple-300", iconColor: "text-white/30", eyeColor: "text-white/30 hover:text-white/60" }
-    : { text: "text-gray-900", textMuted: "text-gray-400", textSub: "text-gray-500", card: "glass-card-light", input: "input-glass-light", btn: "btn-glow-light", link: "text-[#8b5cf6] hover:text-[#a78bfa]", iconColor: "text-[#c4b5fd]", eyeColor: "text-[#c4b5fd] hover:text-[#8b5cf6]" };
+    : { text: "text-gray-900", textMuted: "text-gray-400", textSub: "text-gray-500", card: "glass-card-light", input: "input-glass-light", btn: "btn-glow-light", link: "text-[#8b5cf6] hover:text-[#a78bfa]", iconColor: "text-gray-400", eyeColor: "text-gray-400 hover:text-gray-500" };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center font-body">
