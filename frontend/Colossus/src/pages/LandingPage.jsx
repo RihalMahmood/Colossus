@@ -22,12 +22,12 @@ export default function LandingPage() {
         featureIcon3: "text-cyan-400",
       }
     : {
-        text: "text-gray-900",
-        textMuted: "text-gray-500",
-        textFaint: "text-gray-400",
+        text: "text-black",
+        textMuted: "text-black/50",
+        textFaint: "text-black/50",
         card: "glass-card-light",
         btn: "btn-glow-light",
-        btnGhost: "btn btn-ghost border border-[#e9e0fd] text-[#a78bfa] hover:text-[#7c3aed] hover:border-[#cab9fa]",
+        btnGhost: "btn btn-ghost border border-black/10 text-black/70 hover:text-black hover:border-black/20",
         badge: "border border-[#cab9fa] bg-[#f7f4ff] text-[#8b5cf6]",
         accent: "text-[#8b5cf6]",
         statCard: "glass-card-light",

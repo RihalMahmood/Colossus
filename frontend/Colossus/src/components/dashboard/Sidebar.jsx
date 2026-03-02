@@ -50,7 +50,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`sidebar-item w-full ${activeTab === item.id ? "active" : ""}`}
+            className={`${sidebarItem} w-full ${activeTab === item.id ? "active" : ""}`}
           >
             {item.icon}
             <span className="font-body">{item.label}</span>
