@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Cloud, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "../components/ui/ThemeToggle";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
@@ -25,31 +28,38 @@ export default function LoginPage() {
     }
   };
 
+  const t = isDark
+    ? { text: "text-white", textMuted: "text-white/40", textSub: "text-white/60", card: "glass-card-dark", input: "input-glass-dark", btn: "btn-glow-dark", link: "text-purple-400 hover:text-purple-300", iconColor: "text-white/30", eyeColor: "text-white/30 hover:text-white/60" }
+    : { text: "text-gray-900", textMuted: "text-gray-400", textSub: "text-gray-500", card: "glass-card-light", input: "input-glass-light", btn: "btn-glow-light", link: "text-[#8b5cf6] hover:text-[#a78bfa]", iconColor: "text-[#c4b5fd]", eyeColor: "text-[#c4b5fd] hover:text-[#8b5cf6]" };
+
   return (
     <div className="relative min-h-screen flex items-center justify-center font-body">
-      {/*<div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>*/}
+      <div className="absolute top-6 right-8"><ThemeToggle /></div>
 
       <div className="w-full max-w-md px-4 animate-slide-up">
         {/*Logo*/}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center mb-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ?
+            "bg-gradient-to-br from-purple-500 to-violet-700" :
+            "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"
+            }`}>
             <Cloud size={24} className="text-white" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-white">Welcome back</h1>
-          <p className="text-white/40 mt-1 font-body">Welcome back to Colossus</p>
+          <h1 className={`font-display text-3xl font-bold ${t.text}`}>Welcome back</h1>
+          <p className={`mt-1 font-body ${t.textMuted}`}>Sign in to your Colossus account</p>
         </div>
 
-        <div className="glass-card p-8">
+        <div className={t.card + " p-8"}>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/*Email*/}
             <div>
-              <label className="block text-white/60 text-sm font-medium mb-2">Email</label>
+              <label className={`block text-sm font-medium mb-2 ${t.textSub}`}>Email</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                <Mail size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.iconColor}`} />
                 <input
                   type="email"
                   placeholder="rihal@example.com"
-                  className="input-glass pl-11"
+                  className={`${t.input} pl-11`}
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
@@ -59,13 +69,13 @@ export default function LoginPage() {
 
             {/*Password*/}
             <div>
-              <label className="block text-white/60 text-sm font-medium mb-2">Password</label>
+              <label className={`block text-sm font-medium mb-2 ${t.textSub}`}>Password</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                <Lock size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.iconColor}`} />
                 <input
                   type={showPass ? "text" : "password"}
                   placeholder="••••••••"
-                  className="input-glass pl-11 pr-12"
+                  className={`${t.input} pl-11 pr-12`}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required
@@ -73,21 +83,21 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${t.eyeColor}`}
                 >
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="btn-glow btn w-full mt-2" disabled={loading}>
+            <button type="submit" className={`${t.btn} w-full mt-2`} disabled={loading}>
               {loading ? <span className="loading loading-spinner loading-sm"></span> : "Sign in"}
             </button>
           </form>
 
-          <p className="text-center text-white/40 text-sm mt-6 font-body">
+          <p className={`text-center text-sm mt-6 font-body ${t.textMuted}`}>
             Don't have an account?{" "}
-            <Link to="/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
+            <Link to="/register" className={`font-medium transition-colors ${t.link}`}>
               Create one
             </Link>
           </p>
