@@ -77,7 +77,7 @@ async function getDriveQuota(driveAccount, user) {
       email: driveAccount.email,
     };
   } catch (err) {
-    console.error(`Failed to get quota for ${driveAccount.email}:`, err.message);
+    console.error(`Failed to get quota for ${driveAccount.email}:`, JSON.stringify(err, null, 2));
     return { total: 0, used: 0, free: 0, email: driveAccount.email, error: true };
   }
 }
