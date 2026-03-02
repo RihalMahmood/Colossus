@@ -14,14 +14,15 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    //e.preventDefault();
     setLoading(true);
     try {
       const res = await login(form.email, form.password);
       toast.success(res.message || "Welcome back!");
       navigate("/dashboard");
     } catch (err) {
+      console.log(err);   //For debugging
       toast.error(err.response?.data?.message || "Login failed. Try again.");
     } finally {
       setLoading(false);
@@ -50,7 +51,7 @@ export default function LoginPage() {
         </div>
 
         <div className={t.card + " p-8"}>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-5">
             {/*Email*/}
             <div>
               <label className={`block text-sm font-medium mb-2 ${t.textSub}`}>Email</label>
