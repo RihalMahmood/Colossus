@@ -83,7 +83,7 @@ export default function DrivesPanel() {
   const textFaint = isDark ? "text-white/20" : "text-gray-300";
   const spinnerColor = isDark ? "text-purple-500" : "text-[#a78bfa]";
   const connectBtn = isDark ? "btn-glow-dark" : "btn-glow-light";
-  const infoBox = isDark ? "border-cyan-500/20 bg-cyan-500/5 text-cyan-300" : "border-[#e9e0fd] bg-[#f7f4ff] text-[#8b5cf6]";
+  const infoBox = isDark ? "border-cyan-500/20 bg-cyan-500/5 text-cyan-300" : "border-cyan-500/30  bg-cyan-500/10 text-cyan-700";
   const infoIcon = isDark ? "text-cyan-400" : "text-[#a78bfa]";
   const infoText = isDark ? "text-white/40" : "text-gray-500";
   const barBg = isDark ? "storage-bar-dark" : "storage-bar-light";
@@ -94,7 +94,7 @@ export default function DrivesPanel() {
       {/*Header*/}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`font-display text-2xl font-bold ${textMain}`}>Drive Accounts</h2>
+          <h2 className={`font-display text-2xl font-bold ${textMain}`}>Drive Pool</h2>
           <p className={`font-body text-sm mt-1 ${textSub}`}>
             Each Google Drive adds 15 GB of free storage to your pool
           </p>
