@@ -25,21 +25,32 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
   const sidebarItem = isDark ? "sidebar-item-dark" : "sidebar-item-light";
 
+  const logoSrc = isDark ? "/images/purple_nobg.png" : "/images/lavender_nobg.png";
+
   return (
     //Sidebar
     <aside className={`flex flex-col w-64 h-screen border-r py-6 px-3 shrink-0 backdrop-blur-xl ${isDark ? "border-white/5 bg-black/20" : "border-[#f0ebfe] bg-white/30"
       }`}>
       {/*Logo*/}
       <div className="flex items-center justify-between px-4 mb-8">
-        <div className="flex items-center gap-2">
-          <div className={
-            `w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? "bg-gradient-to-br from-purple-500 to-violet-700" : "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"
-            }`}>
-            <Cloud size={16} className="text-white" />
+        <div className="flex items-center gap-2 mr-4">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img
+              src={logoSrc}
+              alt="Colossus logo"
+              className="w-8 h-8 object-contain transition-opacity duration-300"
+            />
           </div>
           <span className={`font-display font-bold text-lg tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
             Colossus
           </span>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img
+              src={logoSrc}
+              alt="Colossus logo"
+              className="w-8 h-8 object-contain transition-opacity duration-300"
+            />
+          </div>
         </div>
         <ThemeToggle />
       </div>

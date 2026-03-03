@@ -8,43 +8,56 @@ export default function LandingPage() {
 
   const t = isDark
     ? {
-        text: "text-white",
-        textMuted: "text-white/50",
-        textFaint: "text-white/40",
-        card: "glass-card-dark",
-        btn: "btn-glow-dark",
-        btnGhost: "btn btn-ghost border border-white/10 text-white/70 hover:text-white hover:border-white/20",
-        badge: "border border-purple-500/30 bg-purple-500/10 text-purple-300",
-        accent: "text-purple-400",
-        statCard: "glass-card-dark",
-        featureIcon1: "text-purple-400",
-        featureIcon2: "text-violet-400",
-        featureIcon3: "text-cyan-400",
-      }
+      text: "text-white",
+      textMuted: "text-white/50",
+      textFaint: "text-white/40",
+      card: "glass-card-dark",
+      btn: "btn-glow-dark",
+      btnGhost: "btn btn-ghost border border-white/10 text-white/70 hover:text-white hover:border-white/20",
+      badge: "border border-purple-500/30 bg-purple-500/10 text-purple-300",
+      accent: "text-purple-400",
+      statCard: "glass-card-dark",
+      featureIcon1: "text-purple-400",
+      featureIcon2: "text-violet-400",
+      featureIcon3: "text-cyan-400",
+    }
     : {
-        text: "text-gray-900",
-        textMuted: "text-gray-500",
-        textFaint: "text-gray-400",
-        card: "glass-card-light",
-        btn: "btn-glow-light",
-        btnGhost: "btn btn-ghost border border-black/10 text-black/70 hover:text-black hover:border-black/20",
-        badge: "border border-[#cab9fa] bg-[#f7f4ff] text-[#8b5cf6]",
-        accent: "text-[#8b5cf6]",
-        statCard: "glass-card-light",
-        featureIcon1: "text-[#a78bfa]",
-        featureIcon2: "text-[#a78bfa]",
-        featureIcon3: "text-[#a78bfa]",
-      };
+      text: "text-gray-900",
+      textMuted: "text-gray-500",
+      textFaint: "text-gray-400",
+      card: "glass-card-light",
+      btn: "btn-glow-light",
+      btnGhost: "btn btn-ghost border border-black/10 text-black/70 hover:text-black hover:border-black/20",
+      badge: "border border-[#cab9fa] bg-[#f7f4ff] text-[#8b5cf6]",
+      accent: "text-[#8b5cf6]",
+      statCard: "glass-card-light",
+      featureIcon1: "text-[#a78bfa]",
+      featureIcon2: "text-[#a78bfa]",
+      featureIcon3: "text-[#a78bfa]",
+    };
+
+  const logoSrc = isDark ? "/images/purple_nobg.png" : "/images/lavender_nobg.png";
 
   return (
     <div className="relative min-h-screen overflow-hidden font-body">
-      {/* Navbar */}
+      {/*Navbar*/}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? "bg-gradient-to-br from-purple-500 to-violet-700" : "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"}`}>
-            <Cloud size={16} className="text-white" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img
+              src={logoSrc}
+              alt="Colossus logo"
+              className="w-8 h-8 object-contain transition-opacity duration-300"
+            />
           </div>
           <span className={`font-display font-bold text-xl tracking-tight ${t.text}`}>Colossus</span>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img
+              src={logoSrc}
+              alt="Colossus logo"
+              className="w-8 h-8 object-contain transition-opacity duration-300"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -53,7 +66,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/*Hero*/}
       <main className="relative z-10 max-w-5xl mx-auto px-8 pt-24 pb-32 text-center animate-fade-in">
         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-body mb-8 ${t.badge}`}>
           <Zap size={14} />
@@ -81,7 +94,7 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Stats */}
+        {/*Stats*/}
         <div className="grid grid-cols-3 gap-6 mt-24 max-w-2xl mx-auto">
           {[
             { value: "15 GB", label: "per Drive account" },
@@ -95,7 +108,7 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* Features */}
+        {/*Features*/}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
           {[
             { icon: <Layers size={20} className={t.featureIcon1} />, title: "Smart Chunking", desc: "Files too large for one drive? Colossus splits them automatically and reassembles on download." },
