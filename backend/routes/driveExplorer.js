@@ -1,0 +1,393 @@
+const express = require("express");
+const router = express.Router();
+const { google } = require("googleapis");
+const { Readable } = require("stream");
+const { protect } = require("../middleware/authMiddleware");
+
+//Helpers
+
+/*Find a driveAccount subdocument by _id from req.user.driveAccounts
+Throws a structured error if not found (caught by sendError)*/
+function getOwnedDrive(user, driveId) {
+  const drive = user.driveAccounts.id(driveId);
+  if (!drive) throw { status: 404, message: "Drive not found or access denied" };
+  return drive;
+}
+
+//Build an authenticated Google Drive v3 client for a driveAccount subdoc.
+
+/*When googleapis auto-refreshes an expired access token, the new token
+is written back to the subdocument and user.save() persists it to MongoDB*/
+function getDriveClient(user, driveSubdoc) {
+  const oauth2 = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+
+  oauth2.setCredentials({
+    access_token: driveSubdoc.accessToken,
+    refresh_token: driveSubdoc.refreshToken,
+    expiry_date: driveSubdoc.tokenExpiry ? driveSubdoc.tokenExpiry.getTime() : undefined,
+  });
+
+  //Auto-persist refreshed tokens back to MongoDB
+  oauth2.on("tokens", async (tokens) => {
+    try {
+      if (tokens.access_token) {
+        driveSubdoc.accessToken = tokens.access_token;
+      }
+      if (tokens.expiry_date) {
+        driveSubdoc.tokenExpiry = new Date(tokens.expiry_date);
+      }
+      await user.save();
+    } catch (err) {
+      console.error("[DriveExplorer] Failed to persist refreshed token:", err.message);
+    }
+  });
+
+  return google.drive({ version: "v3", auth: oauth2 });
+}
+
+/*Google Workspace mime types → Office export mime types.
+Used for both viewing and downloading Docs/Sheets/Slides*/
+const EXPORT_MAP = {
+  "application/vnd.google-apps.document":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.google-apps.spreadsheet":
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.google-apps.presentation":
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.google-apps.drawing": "image/png",
+};
+
+//Consistent error response — handles both our thrown objects and googleapis errors
+function sendError(res, err) {
+  console.error("[DriveExplorer]", err?.message || err);
+  const status =
+    typeof err?.status === "number" && err.status >= 100 && err.status <= 599
+      ? err.status
+      : typeof err?.code === "number" && err.code >= 100 && err.code <= 599
+        ? err.code
+        : 500;
+  res.status(status).json({ success: false, message: err?.message || "Internal server error" });
+}
+
+//Routes
+
+/*
+GET /api/drive-explorer/:driveId/files
+
+List files and folders inside a Google Drive folder.
+
+Query params:
+  folderId   — Google Drive folder ID to list (default: "root")
+  pageToken  — pagination token from a previous response
+  pageSize   — items per page (default: 100, max: 1000)
+
+Response: { success, items, nextPageToken, driveEmail }
+
+Each item: { id, name, mimeType, isFolder, isGoogleDoc, size,
+              modifiedTime, createdTime, thumbnailLink, webViewLink, shared }
+*/
+router.get("/:driveId/files", protect, async (req, res) => {
+  try {
+    const { folderId = "root", pageToken, pageSize = 100 } = req.query;
+
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    const resp = await driveClient.files.list({
+      q: `'${folderId}' in parents and trashed = false`,
+      fields:
+        "nextPageToken, files(id, name, mimeType, size, modifiedTime, createdTime, thumbnailLink, iconLink, webViewLink, shared)",
+      orderBy: "folder, name",
+      pageSize: Math.min(Number(pageSize) || 100, 1000),
+      pageToken: pageToken || undefined,
+    });
+
+    const items = (resp.data.files || []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      mimeType: f.mimeType,
+      isFolder: f.mimeType === "application/vnd.google-apps.folder",
+      isGoogleDoc: f.mimeType?.startsWith("application/vnd.google-apps."),
+      size: f.size ? Number(f.size) : null,
+      modifiedTime: f.modifiedTime,
+      createdTime: f.createdTime,
+      thumbnailLink: f.thumbnailLink || null,
+      webViewLink: f.webViewLink || null,
+      shared: f.shared || false,
+    }));
+
+    res.json({
+      success: true,
+      items,
+      nextPageToken: resp.data.nextPageToken || null,
+      driveEmail: driveSubdoc.email,
+    });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/*
+GET /api/drive-explorer/:driveId/files/:fileId/view
+
+Stream a file from Google Drive for in-browser viewing.
+Google Workspace files (Docs, Sheets, Slides) are auto-exported
+to their Office equivalents before streaming.
+
+Query params:
+  inline — "true" (default) sets Content-Disposition: inline for browser preview
+            "false" forces Content-Disposition: attachment (download)
+*/
+router.get("/:driveId/files/:fileId/view", protect, async (req, res) => {
+  try {
+    const disposition = req.query.inline === "false" ? "attachment" : "inline";
+
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    //Fetch file metadata first
+    const meta = await driveClient.files.get({
+      fileId: req.params.fileId,
+      fields: "id, name, mimeType, size",
+    });
+    const { name, mimeType, size } = meta.data;
+
+    //Google Workspace files must be exported
+    if (EXPORT_MAP[mimeType]) {
+      const exportMime = EXPORT_MAP[mimeType];
+      const exportRes = await driveClient.files.export(
+        { fileId: req.params.fileId, mimeType: exportMime },
+        { responseType: "stream" }
+      );
+      res.setHeader("Content-Type", exportMime);
+      res.setHeader(
+        "Content-Disposition",
+        `${disposition}; filename="${encodeURIComponent(name)}"`
+      );
+      res.setHeader("Cache-Control", "private, max-age=300");
+      return exportRes.data.pipe(res);
+    }
+
+    //Regular binary file — stream directly
+    const fileRes = await driveClient.files.get(
+      { fileId: req.params.fileId, alt: "media" },
+      { responseType: "stream" }
+    );
+    res.setHeader("Content-Type", mimeType || "application/octet-stream");
+    if (size) res.setHeader("Content-Length", size);
+    res.setHeader(
+      "Content-Disposition",
+      `${disposition}; filename="${encodeURIComponent(name)}"`
+    );
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Cache-Control", "private, max-age=300");
+    fileRes.data.pipe(res);
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/*
+GET /api/drive-explorer/:driveId/files/:fileId/download
+
+Force-download a file (always Content-Disposition: attachment).
+Google Workspace files are exported to Office format.
+*/
+router.get("/:driveId/files/:fileId/download", protect, async (req, res) => {
+  try {
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    const meta = await driveClient.files.get({
+      fileId: req.params.fileId,
+      fields: "id, name, mimeType, size",
+    });
+    const { name, mimeType, size } = meta.data;
+
+    if (EXPORT_MAP[mimeType]) {
+      const exportMime = EXPORT_MAP[mimeType];
+      const exportRes = await driveClient.files.export(
+        { fileId: req.params.fileId, mimeType: exportMime },
+        { responseType: "stream" }
+      );
+      res.setHeader("Content-Type", exportMime);
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(name)}"`);
+      return exportRes.data.pipe(res);
+    }
+
+    const fileRes = await driveClient.files.get(
+      { fileId: req.params.fileId, alt: "media" },
+      { responseType: "stream" }
+    );
+    res.setHeader("Content-Type", mimeType || "application/octet-stream");
+    if (size) res.setHeader("Content-Length", size);
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(name)}"`);
+    res.setHeader("Accept-Ranges", "bytes");
+    fileRes.data.pipe(res);
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/*
+POST /api/drive-explorer/:driveId/folders
+
+Create a new folder inside Google Drive.
+
+Request body: { name: string, parentId?: string }
+  parentId defaults to "root" if not provided.
+
+Response: { success, folder: { id, name, mimeType, createdTime } }
+*/
+router.post("/:driveId/folders", protect, async (req, res) => {
+  try {
+    const { name, parentId = "root" } = req.body;
+
+    if (!name?.trim()) {
+      return res.status(400).json({ success: false, message: "Folder name is required" });
+    }
+
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    const resp = await driveClient.files.create({
+      requestBody: {
+        name: name.trim(),
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentId],
+      },
+      fields: "id, name, mimeType, createdTime",
+    });
+
+    res.status(201).json({ success: true, folder: resp.data });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/*
+DELETE /api/drive-explorer/:driveId/files/:fileId
+
+Move a file or folder to Google Drive trash (safe — not permanent delete).
+
+Response: { success, message }
+*/
+router.delete("/:driveId/files/:fileId", protect, async (req, res) => {
+  try {
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    await driveClient.files.update({
+      fileId: req.params.fileId,
+      requestBody: { trashed: true },
+    });
+
+    res.json({ success: true, message: "Moved to trash successfully" });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/*
+POST /api/drive-explorer/:driveId/upload
+
+Upload a file into a specific Google Drive folder.
+Requires multer memoryStorage middleware applied in server.js.
+
+Request: multipart/form-data
+  file      — the file to upload
+  folderId  — parent folder ID (default: "root")
+
+Response: { success, file: { id, name, mimeType, size, createdTime }, message }
+*/
+router.post("/:driveId/upload", protect, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file provided" });
+    }
+
+    const { folderId = "root" } = req.body;
+
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    const fileStream = Readable.from(req.file.buffer);
+
+    const resp = await driveClient.files.create({
+      requestBody: {
+        name: req.file.originalname,
+        parents: [folderId],
+      },
+      media: {
+        mimeType: req.file.mimetype,
+        body: fileStream,
+      },
+      fields: "id, name, mimeType, size, createdTime, modifiedTime",
+    });
+
+    res.status(201).json({
+      success: true,
+      file: resp.data,
+      message: `"${req.file.originalname}" uploaded successfully`,
+    });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/*
+GET /api/drive-explorer/:driveId/search
+
+Search for files and folders across the entire drive by name.
+
+Query params:
+  q        — search string (required, min 1 char)
+  pageSize — max results (default: 50, max: 200)
+
+Response: { success, items }
+*/
+router.get("/:driveId/search", protect, async (req, res) => {
+  try {
+    const { q = "", pageSize = 50 } = req.query;
+
+    if (!q.trim()) {
+      return res.json({ success: true, items: [] });
+    }
+
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = getDriveClient(req.user, driveSubdoc);
+
+    //Escape single quotes to prevent query injection
+    const safeQ = q.trim().replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+    const resp = await driveClient.files.list({
+      q: `name contains '${safeQ}' and trashed = false`,
+      fields:
+        "files(id, name, mimeType, size, modifiedTime, thumbnailLink, parents)",
+      orderBy: "modifiedTime desc",
+      pageSize: Math.min(Number(pageSize) || 50, 200),
+    });
+
+    const items = (resp.data.files || []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      mimeType: f.mimeType,
+      isFolder: f.mimeType === "application/vnd.google-apps.folder",
+      isGoogleDoc: f.mimeType?.startsWith("application/vnd.google-apps."),
+      size: f.size ? Number(f.size) : null,
+      modifiedTime: f.modifiedTime,
+      thumbnailLink: f.thumbnailLink || null,
+      parents: f.parents || [],
+    }));
+
+    res.json({ success: true, items });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+module.exports = router;
