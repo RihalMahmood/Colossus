@@ -5,7 +5,7 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("colossus_theme");
-    return saved ? saved === "dark" : true; // default to dark
+    return saved ? saved === "dark" : true;   //default to dark
   });
 
   const toggleTheme = () => {
