@@ -167,9 +167,9 @@ export default function DriveExplorer() {
   };
 
   return (
-    <div className={`flex h-[calc(100vh-120px)] rounded-2xl overflow-hidden border ${isDark ? "border-white/10" : "border-[#e9e0fd]"}`}>
+    <div className={`flex h-[calc(100vh-120px)] rounded-2xl overflow-hidden border ${isDark ? "border-white/10" : "border-gray-200"}`}>
       {/*Left — Folder Tree*/}
-      <div className={`w-60 shrink-0 border-r overflow-y-auto ${isDark ? "border-white/5 bg-black/10" : "border-[#e9e0fd] bg-white/20"}`}>
+      <div className={`w-60 shrink-0 border-r overflow-y-auto ${isDark ? "border-white/5 bg-black/10" : "border-gray-100 bg-white/20"}`}>
         <FolderTree
           drives={drives}
           loading={loadingDrives}

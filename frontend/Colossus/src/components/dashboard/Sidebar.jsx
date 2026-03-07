@@ -1,4 +1,4 @@
-import { Cloud, HardDrive, Files, LogOut } from "lucide-react";
+import { Cloud, HardDrive, FolderOpen, LogOut } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { getInitials } from "../../utils/helpers";
@@ -18,7 +18,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   };
 
   const navItems = [
-    { id: "files", icon: <Files size={18} />, label: "My Files" },
+    { id: "files", icon: <FolderOpen size={18} />, label: "Drive Explorer" },
     { id: "drives", icon: <HardDrive size={18} />, label: "Drive Accounts" },
     { id: "storage", icon: <Cloud size={18} />, label: "Storage" },
   ];
@@ -29,7 +29,9 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
   return (
     //Sidebar
-    <aside className={`flex flex-col w-64 h-screen border-r py-6 px-3 shrink-0 backdrop-blur-xl ${isDark ? "border-white/5 bg-black/20" : "border-[#f0ebfe] bg-white/30"
+    <aside className={`flex flex-col w-64 h-screen border-r py-6 px-3 shrink-0 backdrop-blur-xl 
+      ${isDark ?
+        "border-white/5 bg-black/20" : "border-[#f0ebfe] bg-white/30"
       }`}>
       {/*Logo*/}
       <div className="flex items-center justify-between px-4 mb-8">
@@ -90,7 +92,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         </div>
         <button
           onClick={handleLogout}
-          className={`${sidebarItem} w-full mt-1 ${isDark ? "text-red-400/70 hover:text-red-400 hover:bg-red-500/5" : "text-red-400 hover:text-red-600 hover:bg-red-50"}`}
+          className={`${sidebarItem} w-full mt-1 
+          ${isDark ?
+              "text-red-400/70 hover:text-red-400 hover:bg-red-500/5" :
+              "text-red-400 hover:text-red-600 hover:bg-red-50"
+            }`}
         >
           <LogOut size={16} />
           <span className="font-body">Sign out</span>

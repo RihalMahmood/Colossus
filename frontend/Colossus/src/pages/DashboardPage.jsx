@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/dashboard/Sidebar";
-import FilesPanel from "../components/files/FilesPanel";
+import DriveExplorer from "../components/explorer/DriveExplorer";
 import DrivesPanel from "../components/drives/DrivesPanel";
 import StoragePanel from "../components/drives/StoragePanel";
 import api from "../utils/api";
@@ -44,7 +44,7 @@ export default function DashboardPage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/*Main content*/}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 overflow-y-auto ${isDark ? "dark-scroll" : "light-scroll"}`}>
         <div className="max-w-6xl mx-auto px-6 py-8">
           {/*Page title*/}
           <div className="mb-8">
@@ -59,7 +59,7 @@ export default function DashboardPage() {
           </div>
 
           {/*Panels*/}
-          {activeTab === "files" && <FilesPanel />}
+          {activeTab === "files" && <DriveExplorer />}
           {activeTab === "drives" && <DrivesPanel />}
           {activeTab === "storage" && <StoragePanel onConnectDrive={handleConnectDriveFromStorage} />}
         </div>
