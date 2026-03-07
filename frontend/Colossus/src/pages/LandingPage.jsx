@@ -19,7 +19,7 @@ export default function LandingPage() {
       statCard: "glass-card-dark",
       featureIcon1: "text-purple-400",
       featureIcon2: "text-violet-400",
-      featureIcon3: "text-cyan-400",
+      featureIcon3: "text-cyan-400"
     }
     : {
       text: "text-gray-900",
@@ -33,7 +33,7 @@ export default function LandingPage() {
       statCard: "glass-card-light",
       featureIcon1: "text-[#a78bfa]",
       featureIcon2: "text-[#a78bfa]",
-      featureIcon3: "text-[#a78bfa]",
+      featureIcon3: "text-cyan-800"
     };
 
   const logoSrc = isDark ? "/images/purple_nobg.png" : "/images/lavender_nobg.png";

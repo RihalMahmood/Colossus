@@ -21,28 +21,42 @@ export default function FilePreviewModal({ file, onClose, onDownload }) {
   const { isDark } = useTheme();
   const [blobUrl, setBlobUrl] = useState(null);
   const [textContent, setTextContent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(previewType !== "video");
   const [error, setError] = useState(null);
+
   const previewType = getPreviewType(file.mimeType);
   const typeInfo = getFileTypeInfo(file.mimeType, file.name);
+  const token = localStorage.getItem("colossus_token");
+
+  //For video, stream directly from Drive via URL with token as query param- no blob needed
+  const streamUrl = `/api/drive-explorer/${file.driveId}/files/${file.id}/view?inline=true&token=${localStorage.getItem("colossus_token")}`;
 
   useEffect(() => {
-    const token = localStorage.getItem("colossus_token");
-    const url = `/api/drive-explorer/${file.driveId}/files/${file.id}/view?inline=true`;
-    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to load file");
-        if (previewType === "text") {
-          const text = await res.text();
-          setTextContent(text);
-        } else {
-          const blob = await res.blob();
-          setBlobUrl(URL.createObjectURL(blob));
-        }
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [file.id, file.driveId, previewType]);
+    //Video uses stream URL directly, no fetch needed
+    if (previewType === "video") {
+      return;
+    }
+
+    let localBlobUrl = null;
+
+    fetch(`/api/drive-explorer/${file.driveId}/files/${file.id}/view?inline=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(async (res) => {
+      if (!res.ok) throw new Error("Failed to load file");
+      if (previewType === "text") {
+        const text = await res.text();
+        setTextContent(text);
+      } else {
+        const blob = await res.blob();
+        localBlobUrl = URL.createObjectURL(blob);
+        setBlobUrl(localBlobUrl);
+      }
+    }).catch((err) => setError(err.message)).finally(() => setLoading(false));
+
+    return () => {
+      if (localBlobUrl) URL.revokeObjectURL(localBlobUrl);
+    };
+  }, [file.id, file.driveId, previewType, token]);
 
   useEffect(() => {
     const handleKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -105,8 +119,8 @@ export default function FilePreviewModal({ file, onClose, onDownload }) {
           {!loading && !error && previewType === "image" && blobUrl && (
             <img src={blobUrl} alt={file.name} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
           )}
-          {!loading && !error && previewType === "video" && blobUrl && (
-            <video controls className="max-w-full max-h-[70vh] rounded-lg" src={blobUrl} />
+          {!loading && !error && previewType === "video" && (
+            <video controls autoPlay className="max-w-full max-h-[70vh] rounded-lg" src={streamUrl} />
           )}
           {!loading && !error && previewType === "audio" && blobUrl && (
             <div className="p-8 flex flex-col items-center gap-4">

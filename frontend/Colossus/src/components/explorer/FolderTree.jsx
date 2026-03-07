@@ -116,7 +116,7 @@ export default function FolderTree({ drives, loading, selectedDrive, currentFold
               onClick={() => { onNavigate("root", "My Drive", drive); toggleDrive(drive); }}
             >
               {drive.picture
-                ? <img src={drive.picture} alt="" className="w-5 h-5 rounded-full shrink-0" />
+                ? <img src={drive.picture} alt="" referrerPolicy="no-referrer" className="w-5 h-5 rounded-full shrink-0" />
                 : <HardDrive size={14} className="shrink-0" />
               }
               <span className="truncate text-xs font-medium">{drive.email}</span>
