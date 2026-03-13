@@ -11,18 +11,21 @@ function createOAuthClient() {
 }
 
 /*Generate the Google OAuth consent URL for adding a Drive account
-state = userId so we know who to attach the account to after redirect*/
-function getAuthUrl(userId) {
+state = pre-encoded base64 string containing { userId, csrfToken },
+constructed by driveRoutes.js. Previously this function received a raw userId
+and encoded it directly, which provided no CSRD protection. 
+userId helps us know who to attach the account to after redirect*/
+function getAuthUrl(state) {
   const oauth2Client = createOAuthClient();
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",  //Force refresh_token to be returned every time
+    prompt: "consent",    //Force refresh_token to be returned every time
     scope: [
       "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
     ],
-    state: userId.toString(),
+    state,    //Now receives full encoded state string from driveRoutes.js
   });
 }
 

@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
     driveAccounts: [driveAccountSchema],
+    /*Temporary CSRF token stored during OAuth connect flow. 
+    Set in GET /api/drives/connect, verified and cleared in GET /api/drives/oauth/callback.
+    Prevents drive hijacking*/
+    oauthCsrfToken: { type: String, select: false },
   },
   { timestamps: true }
 );
