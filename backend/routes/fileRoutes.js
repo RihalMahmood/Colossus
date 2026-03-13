@@ -69,7 +69,7 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
 
     //Step 2: Sort drives by free space (descending — highest first)
     const drivesWithQuota = user.driveAccounts
-      .map((account, idx) => ({ account, quota: quotas[idx] }))
+      .map((account, idx) => ({ account, quota: quotas[idx], remainingFree: quotas[idx].free, }))
       .filter((d) => !d.quota.error && d.quota.free > 0)
       .sort((a, b) => b.quota.free - a.quota.free);
 
@@ -84,7 +84,7 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
     //Step 3: Check if the file fits in the highest-free-space drive
     const topDrive = drivesWithQuota[0];
 
-    if (topDrive.quota.free >= fileSize) {
+    if (topDrive.remainingFree >= fileSize) {
       //No chunking needed — upload directly to top drive
       const driveClient = await getDriveClient(topDrive.account, user);
       const uploaded = await uploadChunkToDrive(driveClient, fileBuffer, file.originalname, mimeType);
@@ -114,27 +114,28 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
     let driveIndex = 0;
 
     while (byteOffset < fileSize && driveIndex < drivesWithQuota.length) {
-      const { account, quota } = drivesWithQuota[driveIndex];
+      const currentDrive = drivesWithQuota[driveIndex];
 
-      //Calculate how much of the remaining file this drive can hold
-      const remaining = fileSize - byteOffset;
-      const chunkSize = Math.min(quota.free, remaining);
-
-      if (chunkSize <= 0) {
+      //If this drive has no remaining free space, skip to next. Safety check since we update remainingFree as we go.
+      if (currentDrive.remainingFree <= 0) {
         driveIndex++;
         continue;
       }
+
+      //Calculate how much of the remaining file this drive can hold
+      const remaining = fileSize - byteOffset;
+      const chunkSize = Math.min(currentDrive.remainingFree, remaining);
 
       //Slice the buffer for this chunk
       const chunkBuffer = fileBuffer.subarray(byteOffset, byteOffset + chunkSize);
       const chunkFileName = `${file.originalname}.chunk${chunkIndex}`;
 
-      const driveClient = await getDriveClient(account, user);
+      const driveClient = await getDriveClient(currentDrive.account, user);
       const uploaded = await uploadChunkToDrive(driveClient, chunkBuffer, chunkFileName, "application/octet-stream");
 
       chunks.push({
         chunkIndex,
-        driveAccountEmail: account.email,
+        driveAccountEmail: currentDrive.account.email,
         googleFileId: uploaded.id,
         size: chunkSize,
         byteStart: byteOffset,
@@ -143,7 +144,9 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
 
       byteOffset += chunkSize;
       chunkIndex++;
-      driveIndex++;
+      
+      currentDrive.remainingFree -= chunkSize;    //Update remaining free space for this drive
+      if (currentDrive.remainingFree <= 0) driveIndex++;    //Move to next drive if this one is full
     }
 
     //Check if we managed to upload the whole file

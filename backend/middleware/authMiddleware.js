@@ -6,12 +6,11 @@ const protect = async (req, res, next) => {
   try {
     //1. Check Authorization header
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, message: "Not authorized. No token provided." });
-    }
-
     //2. Extract and verify token
-    const token = authHeader.split(" ")[1];
+    const token = authHeader?.split(" ")[1] || req.query.token;
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Not authorized. No token provided." })
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     //3. Find user from token payload (exclude password)
@@ -38,11 +37,16 @@ const protect = async (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id);
-    }
+    const token = (authHeader && authHeader.startsWith("Bearer "))
+    ? authHeader.split(" ")[1] 
+    : req.query.token;
+
+    //If token exists, verify and attach user. If not, just continue without user.
+    if (!token) return next();
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (user) req.user = user;    //If user not found, treat as no auth rather than error
   } catch (_) {
     //Silently ignore invalid/expired tokens for optional routes
   }

@@ -172,13 +172,41 @@ router.get("/:driveId/files/:fileId/view", protect, async (req, res) => {
       return exportRes.data.pipe(res);
     }
 
+    //Handle range requests for video/audio streaming
+    const fileSize = size ? Number(size) : null;
+    const rangeHeader = req.headers.range;
+
+    if (rangeHeader && fileSize) {
+      const parts = rangeHeader.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunkSize = end - start + 1;
+
+      const fileRes = await driveClient.files.get(
+        { fileId: req.params.fileId, alt: "media" },
+        {
+          responseType: "stream",
+          headers: { Range: `bytes=${start}-${end}` },
+        }
+      );
+
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunkSize,
+        "Content-Type": mimeType,
+        "Cache-Control": "private, max-age=300",
+      });
+      return fileRes.data.pipe(res);
+    }
+
     //Regular binary file — stream directly
     const fileRes = await driveClient.files.get(
       { fileId: req.params.fileId, alt: "media" },
       { responseType: "stream" }
     );
     res.setHeader("Content-Type", mimeType || "application/octet-stream");
-    if (size) res.setHeader("Content-Length", size);
+    if (fileSize) res.setHeader("Content-Length", fileSize);
     res.setHeader(
       "Content-Disposition",
       `${disposition}; filename="${encodeURIComponent(name)}"`

@@ -10,10 +10,20 @@ const {
 
 /*GET /api/drives/connect
 Generates the Google OAuth URL to add a new Drive account.
-The user will be redirected to Google to grant permissions*/
-router.get("/connect", protect, (req, res) => {
+The user will be redirected to Google to grant permissions.
+Now encodes { userId, csrfToken } in state and persists csrfToken to user document*/
+router.get("/connect", protect, async (req, res) => {
   try {
-    const url = getAuthUrl(req.user._id);
+    //Generate a random CSRF token for this OAuth session
+    const csrfToken = crypto.randomBytes(24).toString("hex");
+
+    req.user.oauthCsrfToken = csrfToken;    //Save CSRF token to user document for later verification
+    await req.user.save();
+
+    //Encode both userId and csrfToken into the state parameter as JSON string
+    const state = Buffer.from(JSON.stringify({ userId: req.user._id.toString(), csrfToken })).toString("base64");
+
+    const url = getAuthUrl(state);
     res.json({ success: true, url });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to generate OAuth URL." });
