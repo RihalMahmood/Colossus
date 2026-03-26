@@ -19,14 +19,15 @@ function getPreviewType(mimeType) {
 
 export default function FilePreviewModal({ file, onClose, onDownload }) {
   const { isDark } = useTheme();
-  const [blobUrl, setBlobUrl] = useState(null);
-  const [textContent, setTextContent] = useState(null);
-  const [loading, setLoading] = useState(previewType !== "video");
-  const [error, setError] = useState(null);
 
   const previewType = getPreviewType(file.mimeType);
   const typeInfo = getFileTypeInfo(file.mimeType, file.name);
   const token = localStorage.getItem("colossus_token");
+
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [textContent, setTextContent] = useState(null);
+  const [loading, setLoading] = useState(previewType !== "video");
+  const [error, setError] = useState(null);
 
   //For video, stream directly from Drive via URL with token as query param- no blob needed
   const streamUrl = `/api/drive-explorer/${file.driveId}/files/${file.id}/view?inline=true&token=${localStorage.getItem("colossus_token")}`;

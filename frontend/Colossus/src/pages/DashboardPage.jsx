@@ -11,13 +11,11 @@ import toast from "react-hot-toast";
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
   const { isDark } = useTheme();
-  const [activeTab, setActiveTab] = useState("files");
-
-  //If returning from OAuth callback with ?tab=drives, switch to drives tab
-  useState(() => {
+  const [activeTab, setActiveTab] = useState(() => {
     if (searchParams.get("drive_connected") || searchParams.get("drive_error")) {
-      setActiveTab("drives");
+      return("drives");
     }
+    return "files";
   });
 
   const handleConnectDriveFromStorage = async () => {

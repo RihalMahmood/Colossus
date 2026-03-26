@@ -6,6 +6,11 @@ import FilePreviewModal from "./FilePreviewModal";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 
+/*DriveExplorer orchestrates the two-panel file browser:
+  Left  — FolderTree (per-drive folder navigation)
+  Right — FileGrid   (file listing + both upload modes)
+
+Upload responsibility has been moved entirely into FileGrid*/
 export default function DriveExplorer() {
   const { isDark } = useTheme();
   const [drives, setDrives] = useState([]);
@@ -45,7 +50,7 @@ export default function DriveExplorer() {
       const res = await api.get(`/drive-explorer/${driveId}/files`, {
         params: { folderId, pageSize: 100, ...(pageToken && { pageToken }) },
       });
-      setFiles((prev) => pageToken ? [...prev, ...res.data.items] : res.data.items);
+      setFiles((prev) => (pageToken ? [...prev, ...res.data.items] : res.data.items));
       setNextPageToken(res.data.nextPageToken);
     } catch {
       toast.error("Failed to load files.");
@@ -62,7 +67,7 @@ export default function DriveExplorer() {
     }
   }, [selectedDrive, currentFolderId, fetchFiles]);
 
-  //Navigate into a folder from file grid
+  //Navigate into a folder from the file grid
   const navigateToFolder = (folder) => {
     setCurrentFolderId(folder.id);
     setBreadcrumbs((prev) => {
@@ -78,7 +83,7 @@ export default function DriveExplorer() {
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
   };
 
-  //Navigate from folder tree
+  //Navigate from folder tree (can switch drives)
   const navigateFromTree = (folderId, folderName, driveObj) => {
     if (driveObj._id !== selectedDrive?._id) {
       setSelectedDrive(driveObj);
@@ -92,7 +97,7 @@ export default function DriveExplorer() {
     }
   };
 
-  //Debounced search
+  //Debounced search within the selected drive
   useEffect(() => {
     if (!search.trim() || !selectedDrive) return;
     const timer = setTimeout(async () => {
@@ -111,7 +116,7 @@ export default function DriveExplorer() {
     return () => clearTimeout(timer);
   }, [search, selectedDrive]);
 
-  //When search cleared, reload current folder
+  //When search is cleared, reload the current folder
   useEffect(() => {
     if (!search.trim() && selectedDrive) {
       fetchFiles(selectedDrive._id, currentFolderId);
@@ -167,9 +172,12 @@ export default function DriveExplorer() {
   };
 
   return (
-    <div className={`flex h-[calc(100vh-120px)] rounded-2xl overflow-hidden border ${isDark ? "border-white/10" : "border-gray-200"}`}>
+    <div className={`flex h-[calc(100vh-120px)] rounded-2xl overflow-hidden border
+      ${isDark ? "border-white/10" : "border-gray-200"}`}>
+
       {/*Left — Folder Tree*/}
-      <div className={`w-60 shrink-0 border-r overflow-y-auto ${isDark ? "border-white/5 bg-black/10" : "border-gray-100 bg-white/20"}`}>
+      <div className={`w-60 shrink-0 border-r overflow-y-auto
+        ${isDark ? "border-white/5 bg-black/10" : "border-gray-100 bg-white/20"}`}>
         <FolderTree
           drives={drives}
           loading={loadingDrives}
@@ -179,7 +187,7 @@ export default function DriveExplorer() {
         />
       </div>
 
-      {/*Right — File Grid*/}
+      {/*Right — File Grid (owns both upload modes internally)*/}
       <div className="flex-1 flex flex-col overflow-hidden">
         <FileGrid
           files={files}

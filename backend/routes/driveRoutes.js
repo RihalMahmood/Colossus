@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { randomBytes } = require("node:crypto");
 const { protect } = require("../middleware/authMiddleware");
 const {
   getAuthUrl,
@@ -8,47 +9,64 @@ const {
   getDriveQuota,
 } = require("../utils/googleDrive");
 
-/*GET /api/drives/connect
+/*Encode state as a JSON object containing both userId AND a random CSRF token,
+then store the CSRF token server-side (on the user document) during /connect,
+and verify it matches during /oauth/callback before accepting the code exchange.*/
+
+/*
+GET /api/drives/connect
 Generates the Google OAuth URL to add a new Drive account.
-The user will be redirected to Google to grant permissions.
-Now encodes { userId, csrfToken } in state and persists csrfToken to user document*/
+Now encodes { userId, csrfToken } in state and persists csrfToken to user document.
+*/
 router.get("/connect", protect, async (req, res) => {
   try {
     //Generate a random CSRF token for this OAuth session
-    const csrfToken = crypto.randomBytes(24).toString("hex");
+    const csrfToken = randomBytes(24).toString("hex");
 
-    req.user.oauthCsrfToken = csrfToken;    //Save CSRF token to user document for later verification
+    //Persist the token on the user so we can verify it on callback
+    req.user.oauthCsrfToken = csrfToken;
     await req.user.save();
 
-    //Encode both userId and csrfToken into the state parameter as JSON string
-    const state = Buffer.from(JSON.stringify({ userId: req.user._id.toString(), csrfToken })).toString("base64");
+    //Encode both userId and csrfToken into the state param
+    const state = Buffer.from(
+      JSON.stringify({ userId: req.user._id.toString(), csrfToken })
+    ).toString("base64");
 
     const url = getAuthUrl(state);
     res.json({ success: true, url });
   } catch (err) {
+    console.error("Drive connect error:", err);
     res.status(500).json({ success: false, message: "Failed to generate OAuth URL." });
   }
 });
 
-/*GET /api/drives/oauth/callback
+/*
+GET /api/drives/oauth/callback
 Google redirects here after the user grants permission.
-Exchanges code for tokens, fetches user info, saves to DB.
-Then redirects to frontend with success/failure indication.*/
+Now verifies the CSRF token before exchanging the code for tokens.
+*/
 router.get("/oauth/callback", async (req, res) => {
-  const { code, state: userId, error } = req.query;
+  const { code, state, error } = req.query;
 
-  if (error || !code) {
+  if (error || !code || !state) {
     return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=access_denied`);
   }
 
   try {
-    //Exchange code for tokens
-    const tokens = await exchangeCodeForTokens(code);
+    //Decode and validate the state param
+    let parsedState;
+    try {
+      parsedState = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
+    } catch {
+      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=invalid_state`);
+    }
 
-    //Get Google user info for this account
-    const googleUser = await getGoogleUserInfo(tokens);
+    const { userId, csrfToken } = parsedState;
+    if (!userId || !csrfToken) {
+      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=invalid_state`);
+    }
 
-    //Find the platform user from state param
+    //Find the platform user
     const User = require("../models/User");
     const user = await User.findById(userId);
 
@@ -56,13 +74,30 @@ router.get("/oauth/callback", async (req, res) => {
       return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=user_not_found`);
     }
 
+    //Verify the CSRF token matches what we stored at /connect time
+    if (!user.oauthCsrfToken || user.oauthCsrfToken !== csrfToken) {
+      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=csrf_mismatch`);
+    }
+
+    //Clear the used CSRF token immediately (one-time use)
+    user.oauthCsrfToken = undefined;
+
+    //Exchange code for tokens
+    const tokens = await exchangeCodeForTokens(code);
+
+    //Get Google user info for this account
+    const googleUser = await getGoogleUserInfo(tokens);
+
     //Check if this Google account is already connected
     const alreadyConnected = user.driveAccounts.some(
       (acc) => acc.email === googleUser.email
     );
 
     if (alreadyConnected) {
-      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=already_connected&email=${googleUser.email}`);
+      await user.save();
+      return res.redirect(
+        `${process.env.CLIENT_URL}/dashboard?drive_error=already_connected&email=${googleUser.email}`
+      );
     }
 
     //Add the new drive account
@@ -77,21 +112,29 @@ router.get("/oauth/callback", async (req, res) => {
 
     await user.save();
 
-    res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_connected=true&email=${googleUser.email}`);
+    res.redirect(
+      `${process.env.CLIENT_URL}/dashboard?drive_connected=true&email=${googleUser.email}`
+    );
   } catch (err) {
     console.error("OAuth callback error:", err);
     res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=server_error`);
   }
 });
 
-/*GET /api/drives
-Returns all connected drive accounts for the current user (with quota info)*/
+/*
+GET /api/drives
+Returns all connected drive accounts for the current user (with quota info)
+*/
 router.get("/", protect, async (req, res) => {
   try {
     const user = req.user;
 
     if (!user.driveAccounts || user.driveAccounts.length === 0) {
-      return res.json({ success: true, drives: [], totalStorage: { total: 0, used: 0, free: 0 } });
+      return res.json({
+        success: true,
+        drives: [],
+        totalStorage: { total: 0, used: 0, free: 0 },
+      });
     }
 
     //Fetch quota for each drive in parallel
@@ -109,8 +152,7 @@ router.get("/", protect, async (req, res) => {
       quota: driveQuotas[idx],
     }));
 
-    /*Calculate combined totals
-    .reduce to sum up total, used, and free storage across all drives*/
+    //Calculate combined totals
     const totalStorage = driveQuotas.reduce(
       (acc, q) => ({
         total: acc.total + q.total,
@@ -127,8 +169,10 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-/*DELETE /api/drives/:driveId
-Disconnect a Google Drive account from the user's profile*/
+/*
+DELETE /api/drives/:driveId
+Disconnect a Google Drive account from the user's profile
+*/
 router.delete("/:driveId", protect, async (req, res) => {
   try {
     const user = req.user;
@@ -143,7 +187,7 @@ router.delete("/:driveId", protect, async (req, res) => {
     }
 
     const removedEmail = user.driveAccounts[accountIndex].email;
-    user.driveAccounts.splice(accountIndex, 1);     //.splice can be used to remove an element from an array by index
+    user.driveAccounts.splice(accountIndex, 1);
     await user.save();
 
     res.json({ success: true, message: `Drive account ${removedEmail} disconnected.` });
