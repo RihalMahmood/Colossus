@@ -144,7 +144,7 @@ router.get("/", protect, async (req, res) => {
 
     //Build drive list with metadata
     const drives = user.driveAccounts.map((account, idx) => ({
-      _id: account._id,
+      _id: account._id.toString(),
       email: account.email,
       displayName: account.displayName,
       picture: account.picture,

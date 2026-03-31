@@ -37,8 +37,41 @@ async function exchangeCodeForTokens(code) {
   return tokens;
 }
 
-/*Get an authenticated Drive client for a specific drive account
-Automatically refreshes token if expired*/
+/*Per-user debounce timers for token persistence.
+Key: user._id.toString()  Value: setTimeout handle
+Why this exists:
+  GET /api/drives fetches quota for ALL drives via Promise.all, meaning
+  multiple OAuth clients refresh their tokens at almost exactly the same time.
+  Each "tokens" event fires independently and all call user.save() — Mongoose
+  throws ParallelSaveError because you can't save the same document twice
+  concurrently.
+Fix: instead of saving immediately in the "tokens" handler, we schedule the
+save with a short debounce (100ms). If multiple token refreshes fire within
+that window (which they always do on quota fetch), they all update the in-memory
+driveAccount fields first, and then exactly ONE save() fires after they've all
+settled. This is safe because all mutations are synchronous writes to the same
+in-memory document — the debounce just delays the flush to MongoDB.*/
+
+const pendingSaves = new Map();
+
+function scheduleSave(user) {
+  const key = user._id.toString();
+  if (pendingSaves.has(key)) {
+    clearTimeout(pendingSaves.get(key));
+  }
+  const timer = setTimeout(async () => {
+    pendingSaves.delete(key);
+    try {
+      await user.save();
+    } catch (err) {
+      console.error(`[googleDrive] Deferred token save failed for user ${key}:`, err.message);
+    }
+  }, 100);    //100ms window to batch multiple token updates together
+  pendingSaves.set(key, timer);
+}
+
+/*Get an authenticated Drive client for a specific drive account.
+Automatically refreshes token if expired and persists it via debounced save*/
 
 async function getDriveClient(driveAccount, user) {
   const oauth2Client = createOAuthClient();
@@ -49,14 +82,16 @@ async function getDriveClient(driveAccount, user) {
     expiry_date: driveAccount.tokenExpiry ? new Date(driveAccount.tokenExpiry).getTime() : null,
   });
 
-  //Handle token refresh automatically, so user doesn't have to re-authenticate when token expires
+  /*Handle token refresh automatically, so user doesn't have to re-authenticate when token expires
+  Update in-memory token fields immediately, but debounce the actual save; so concurrent refreshes
+  from 'Promise.all' don't trigger ParellelSaveError*/
   oauth2Client.on("tokens", async (tokens) => {
     if (tokens.access_token) {
       const account = user.driveAccounts.id(driveAccount._id);
       if (account) {
         account.accessToken = tokens.access_token;
         if (tokens.expiry_date) account.tokenExpiry = new Date(tokens.expiry_date);
-        await user.save();
+        scheduleSave(user);   //Debounced - safe under parallel calls
       }
     }
   });

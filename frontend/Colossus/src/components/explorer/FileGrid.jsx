@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
   Search, FolderPlus, Zap, FolderInput, ChevronRight, FolderOpen,
-  Download, Trash2, Eye, Loader, FileX, MoreVertical, X
+  Download, Trash2, Eye, Loader, FileX, MoreVertical, X,
+  HardDrive
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { formatBytes, formatDate, getFileTypeInfo } from "../../utils/helpers";
@@ -53,8 +54,14 @@ function CreateFolderModal({ onConfirm, onClose, isDark }) {
   );
 }
 
-//File Item Card
-function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete }) {
+/*File Item Card
+showDriveBadge — true when in cross-drive search mode.
+  Renders a small drive email tag at the bottom of each card so the user
+  knows which of their drives the result came from.
+  
+onDownload / onDelete receive the full file object as a third argument
+  so DriveExplorer can extract file._driveId for cross-drive action routing.*/
+function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete, showDriveBadge }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const typeInfo = getFileTypeInfo(file.mimeType, file.name);
   const isFolder = file.isFolder;
@@ -105,7 +112,8 @@ function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete })
               </a>
             )}
             {!isFolder && (
-              <button onClick={() => { onDownload(file.id, file.name); setMenuOpen(false); }}
+              //Pass full file object as third arg so DriveExplorer resolves _driveId
+              <button onClick={() => { onDownload(file.id, file.name, file); setMenuOpen(false); }}
                 className={`flex items-center gap-2 w-full px-3 py-2 text-sm ${isDark
                   ? "hover:bg-white/5 text-white/70" : "hover:bg-gray-100 text-gray-700"}`}>
                 <Download size={13} /> Download
@@ -131,6 +139,15 @@ function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete })
           {formatDate(file.modifiedTime)}
         </span>
       </div>
+
+      {/*Drive source badge - only shown during cross-drive search*/}
+      {showDriveBadge && file._driveEmail && (
+        <div className={`mt-1.5 flex items-center gap-1 text-xs font-mono truncate
+          ${isDark ? "text-purple-400/50" : "text-[#a78bfa]/70"}`}>
+          <HardDrive size={9} className="shrink-0" />
+          <span className="truncate">{file._driveEmail}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -140,7 +157,8 @@ function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete })
 export default function FileGrid({
   files, loading, breadcrumbs, search, selectedDrive, currentFolderId,
   nextPageToken, onSearchChange, onNavigateFolder, onBreadcrumbClick,
-  onPreview, onDownload, onDelete, onCreateFolder, onLoadMore, onUploadComplete, driveId,
+  onPreview, onDownload, onDelete, onCreateFolder, onLoadMore, onUploadComplete,
+  driveId, isSearching,
 }) {
   const { isDark } = useTheme();
   const [showSmartUpload, setShowSmartUpload] = useState(false);
@@ -154,11 +172,13 @@ export default function FileGrid({
 
   //Build readable folder label for the Upload Here zone
   const folderLabel = selectedDrive
-    ? [
-        selectedDrive.email,
-        ...breadcrumbs.slice(1).map((b) => b.name),   //Skip "My Drive" root
-      ].join(" / ")
+    ? [selectedDrive.email,
+    ...breadcrumbs.slice(1).map((b) => b.name),   //Skip "My Drive" root
+    ].join(" / ")
     : "current folder";
+
+  //isSearching = cross-drive search is active - show drive badges on cards
+  const showDriveBadge = isSearching && !!search.trim();
 
   //Style helpers
   const topBarBorder = isDark ? "border-b border-white/5" : "border-b border-gray-100";
@@ -201,6 +221,9 @@ export default function FileGrid({
           {search.trim() && (
             <span className={`text-sm font-body ${mutedText}`}>
               Search results for <span className={accentText}>"{search}"</span>
+              <span className={`ml-2 text-xs font-mono ${isDark ? "text-white/15" : "text-gray-300"}`}>
+                — all drives
+              </span>
             </span>
           )}
         </div>
@@ -210,7 +233,7 @@ export default function FileGrid({
           <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${mutedText}`} />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search all drives"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className={`pl-9 pr-3 py-1.5 text-sm rounded-xl border w-44 focus:outline-none ${isDark
@@ -246,7 +269,7 @@ export default function FileGrid({
             mode="smart"
             onUploaded={(f) => {
               if (f) {
-                // Smart upload goes to a different drive, no need to refresh current folder view
+                //Smart upload goes to a different drive, no need to refresh current folder view
                 setShowSmartUpload(false);
               }
             }}
@@ -288,12 +311,18 @@ export default function FileGrid({
               <div>
                 <p className={`text-xs font-mono uppercase tracking-wider mb-2 ${mutedText}`}>
                   Files ({regularFiles.length})
+                  {showDriveBadge && (
+                    <span className={`ml-2 normal-case font-body ${isDark ? "text-white/20" : "text-gray-300"}`}>
+                      across all drives
+                    </span>
+                  )}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {regularFiles.map((f) => (
-                    <FileItem key={f.id} file={f} isDark={isDark}
+                    <FileItem key={`${f._driveId || ""}:${f.id}`} file={f} isDark={isDark}
                       onNavigate={onNavigateFolder} onPreview={onPreview}
-                      onDownload={onDownload} onDelete={onDelete} />
+                      onDownload={onDownload} onDelete={onDelete}
+                      showDriveBadge={showDriveBadge} />
                   ))}
                 </div>
               </div>
@@ -313,8 +342,7 @@ export default function FileGrid({
 
         {/*Upload Here zone — sits at the bottom of the file list*/}
         {selectedDrive && !search.trim() && (
-          <div className="mt-6 pt-4 border-t border-dashed
-            border-white/5">
+          <div className="mt-6 pt-4 border-t border-dashed border-white/5">
             <button
               onClick={() => { setShowDirectUpload((v) => !v); setShowSmartUpload(false); }}
               className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-body
@@ -324,8 +352,8 @@ export default function FileGrid({
                     ? "border-violet-500/40 bg-violet-500/10 text-violet-300"
                     : "border-[#b89ef8] bg-[#f0ebfe] text-[#8b5cf6]"
                   : isDark
-                  ? "border-white/10 text-white/20 hover:text-white/40 hover:border-white/20"
-                  : "border-gray-200 text-gray-300 hover:text-gray-500 hover:border-gray-300"}`}>
+                    ? "border-white/10 text-white/20 hover:text-white/40 hover:border-white/20"
+                    : "border-gray-200 text-gray-300 hover:text-gray-500 hover:border-gray-300"}`}>
               <FolderInput size={13} />
               {showDirectUpload ? "Hide" : "Upload to this folder"}
               {!showDirectUpload && (

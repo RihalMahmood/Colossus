@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { google } = require("googleapis");
 const { Readable } = require("stream");
 const { protect } = require("../middleware/authMiddleware");
+//Use the shared getDriveClient from googleDrive.js which has debounced save.
+const { getDriveClient } = require("../utils/googleDrive");
 
 //Helpers
 
@@ -12,41 +13,6 @@ function getOwnedDrive(user, driveId) {
   const drive = user.driveAccounts.id(driveId);
   if (!drive) throw { status: 404, message: "Drive not found or access denied" };
   return drive;
-}
-
-//Build an authenticated Google Drive v3 client for a driveAccount subdoc.
-
-/*When googleapis auto-refreshes an expired access token, the new token
-is written back to the subdocument and user.save() persists it to MongoDB*/
-function getDriveClient(user, driveSubdoc) {
-  const oauth2 = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
-
-  oauth2.setCredentials({
-    access_token: driveSubdoc.accessToken,
-    refresh_token: driveSubdoc.refreshToken,
-    expiry_date: driveSubdoc.tokenExpiry ? driveSubdoc.tokenExpiry.getTime() : undefined,
-  });
-
-  //Auto-persist refreshed tokens back to MongoDB
-  oauth2.on("tokens", async (tokens) => {
-    try {
-      if (tokens.access_token) {
-        driveSubdoc.accessToken = tokens.access_token;
-      }
-      if (tokens.expiry_date) {
-        driveSubdoc.tokenExpiry = new Date(tokens.expiry_date);
-      }
-      await user.save();
-    } catch (err) {
-      console.error("[DriveExplorer] Failed to persist refreshed token:", err.message);
-    }
-  });
-
-  return google.drive({ version: "v3", auth: oauth2 });
 }
 
 /*Google Workspace mime types → Office export mime types.
@@ -95,7 +61,7 @@ router.get("/:driveId/files", protect, async (req, res) => {
     const { folderId = "root", pageToken, pageSize = 100 } = req.query;
 
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     const resp = await driveClient.files.list({
       q: `'${folderId}' in parents and trashed = false`,
@@ -147,7 +113,7 @@ router.get("/:driveId/files/:fileId/view", protect, async (req, res) => {
     const disposition = req.query.inline === "false" ? "attachment" : "inline";
 
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     //Fetch file metadata first
     const meta = await driveClient.files.get({
@@ -228,7 +194,7 @@ Google Workspace files are exported to Office format.
 router.get("/:driveId/files/:fileId/download", protect, async (req, res) => {
   try {
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     const meta = await driveClient.files.get({
       fileId: req.params.fileId,
@@ -280,7 +246,7 @@ router.post("/:driveId/folders", protect, async (req, res) => {
     }
 
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     const resp = await driveClient.files.create({
       requestBody: {
@@ -307,7 +273,7 @@ Response: { success, message }
 router.delete("/:driveId/files/:fileId", protect, async (req, res) => {
   try {
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     await driveClient.files.update({
       fileId: req.params.fileId,
@@ -341,7 +307,7 @@ router.post("/:driveId/upload", protect, async (req, res) => {
     const { folderId = "root" } = req.body;
 
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     const fileStream = Readable.from(req.file.buffer);
 
@@ -387,7 +353,7 @@ router.get("/:driveId/search", protect, async (req, res) => {
     }
 
     const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
-    const driveClient = getDriveClient(req.user, driveSubdoc);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
 
     //Escape single quotes to prevent query injection
     const safeQ = q.trim().replace(/\\/g, "\\\\").replace(/'/g, "\\'");

@@ -10,7 +10,14 @@ import toast from "react-hot-toast";
   Left  — FolderTree (per-drive folder navigation)
   Right — FileGrid   (file listing + both upload modes)
 
-Upload responsibility has been moved entirely into FileGrid*/
+Upload responsibility has been moved entirely into FileGrid
+Cross-drive search:
+  When a search query is active, ALL connected drives are queried in parallel
+  via Promise.allSettled. Each result is tagged with _driveId and _driveEmail
+  so that handleDownload / handlePreview / handleDelete know which drive to
+  call — even when results come from different drives.
+
+  Outside of search mode, actions always use selectedDrive._id as before*/
 export default function DriveExplorer() {
   const { isDark } = useTheme();
   const [drives, setDrives] = useState([]);
@@ -97,24 +104,57 @@ export default function DriveExplorer() {
     }
   };
 
-  //Debounced search within the selected drive
+  /*Cross-drive search - queries all connected drives in parallel.
+  Why tag with _driveId / _driveEmail?
+    Outside search mode, every file in the grid belongs to selectedDrive, so
+    handleDownload/handlePreview/handleDelete just use selectedDrive._id.
+    But in search mode, result[0] might be from drive A and result[1] from
+    drive B. We tag each item at search time so the action handlers can always
+    resolve the correct drive regardless of which drive is "selected".*/
   useEffect(() => {
-    if (!search.trim() || !selectedDrive) return;
+    if (!search.trim() || drives.length === 0) return;
+
     const timer = setTimeout(async () => {
       setSearching(true);
+
+      //Snapshot id and email as plain primitives right now, before any async work
+      const driveSnapshots = drives.map((drive) => ({
+        id: String(drive._id),
+        email: String(drive.email),
+      }));
       try {
-        const res = await api.get(`/drive-explorer/${selectedDrive._id}/search`, {
-          params: { q: search },
-        });
-        setFiles(res.data.items || []);
+        const results = await Promise.allSettled(
+          driveSnapshots.map(({ id, email }) =>  // destructure primitives — no object reference
+            api
+              .get(`/drive-explorer/${id}/search`, { params: { q: search } })
+              .then((response) =>
+                (response.data.items || []).map((item) => ({
+                  ...item,
+                  _driveId: id,
+                  _driveEmail: email,
+                }))
+              )
+          )
+        );
+
+        //Collect fulfilled results & silently skip drives that errored
+        const merged = results.flatMap((r) =>
+          r.status === "fulfilled" ? r.value : []
+        );
+
+        //Sort by most recently modified across all drives
+        merged.sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+
+        setFiles(merged);
       } catch {
         toast.error("Search failed.");
       } finally {
         setSearching(false);
       }
     }, 400);
+
     return () => clearTimeout(timer);
-  }, [search, selectedDrive]);
+  }, [search, drives]);
 
   //When search is cleared, reload the current folder
   useEffect(() => {
@@ -136,10 +176,16 @@ export default function DriveExplorer() {
     }
   };
 
-  const handleDelete = async (fileId, fileName) => {
+  /*Action handlers: resolve driveId from the file's _driveId tag when in search
+  mode, otherwise fall back to selectedDrive._id for normal folder browsing.
+  Makes cross-drive search actions work correctly*/
+  const resolveDriveId = (file) => file._driveId || selectedDrive?._id;
+
+  const handleDelete = async (fileId, fileName, file = {}) => {
     if (!confirm(`Move "${fileName}" to trash?`)) return;
+    const driveId = resolveDriveId(file);
     try {
-      await api.delete(`/drive-explorer/${selectedDrive._id}/files/${fileId}`);
+      await api.delete(`/drive-explorer/${driveId}/files/${fileId}`);
       toast.success(`"${fileName}" moved to trash`);
       setFiles((prev) => prev.filter((f) => f.id !== fileId));
     } catch {
@@ -147,9 +193,10 @@ export default function DriveExplorer() {
     }
   };
 
-  const handleDownload = (fileId, fileName) => {
+  const handleDownload = (fileId, fileName, file = {}) => {
+    const driveId = resolveDriveId(file);
     const token = localStorage.getItem("colossus_token");
-    fetch(`/api/drive-explorer/${selectedDrive._id}/files/${fileId}/download`, {
+    fetch(`/api/drive-explorer/${driveId}/files/${fileId}/download`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.blob())
@@ -168,7 +215,8 @@ export default function DriveExplorer() {
   };
 
   const handlePreview = (file) => {
-    setPreviewFile({ ...file, driveId: selectedDrive._id });
+    //Attach the resolved driveId onto the file object for FilePreviewModal
+    setPreviewFile({ ...file, driveId: resolveDriveId(file) });
   };
 
   return (
