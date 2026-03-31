@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Search, FolderPlus, Zap, FolderInput, ChevronRight, FolderOpen,
   Download, Trash2, Eye, Loader, FileX, MoreVertical, X,
-  HardDrive
+  HardDrive, ChevronDown
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { formatBytes, formatDate, getFileTypeInfo } from "../../utils/helpers";
@@ -54,14 +54,12 @@ function CreateFolderModal({ onConfirm, onClose, isDark }) {
   );
 }
 
-/*File Item Card
-showDriveBadge — true when in cross-drive search mode.
-  Renders a small drive email tag at the bottom of each card so the user
-  knows which of their drives the result came from.
-  
+/*
+File Item Card  
 onDownload / onDelete receive the full file object as a third argument
-  so DriveExplorer can extract file._driveId for cross-drive action routing.*/
-function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete, showDriveBadge }) {
+  so DriveExplorer can extract file._driveId for cross-drive action routing.
+*/
+function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const typeInfo = getFileTypeInfo(file.mimeType, file.name);
   const isFolder = file.isFolder;
@@ -139,13 +137,96 @@ function FileItem({ file, isDark, onNavigate, onPreview, onDownload, onDelete, s
           {formatDate(file.modifiedTime)}
         </span>
       </div>
+    </div>
+  );
+}
 
-      {/*Drive source badge - only shown during cross-drive search*/}
-      {showDriveBadge && file._driveEmail && (
-        <div className={`mt-1.5 flex items-center gap-1 text-xs font-mono truncate
-          ${isDark ? "text-purple-400/50" : "text-[#a78bfa]/70"}`}>
-          <HardDrive size={9} className="shrink-0" />
-          <span className="truncate">{file._driveEmail}</span>
+/*
+Drive Section (search results grouped by drive)
+
+Renders one collapsible section for a single drive's search results. Auto expanded
+when there are <2 drives with results (easy to read), auto-collapsed when there
+are many drives (avoids overwhelming the screen)
+*/
+
+function DriveSection({ email, files, isDark, defaultOpen, onNavigate, onPreview, onDownload, onDelete }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const folders = files.filter((f) => f.isFolder);
+  const regularFiles = files.filter((f) => !f.isFolder);
+  const count = files.length;
+
+  return (
+    <div className={`rounded-2xl overflow-hidden border transition-all ${isDark
+      ? "border-white/8 bg-white/[0.02]" : "border-gray-100 bg-gray-50/50"}`}>
+
+      {/*Section header - click to collapse/expand*/}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center gap-3 px-4 transition-colors ${isDark
+          ? "hover:bg-white/5" : "hover:bg-gray-100/80"}`}>
+
+        {/*Drive Icon*/}
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isDark
+          ? "bg-purple-500/20" : "bg-[#f0ebfe]"}`}>
+          <HardDrive size={13} className={isDark ? "text-purple-400" : "text-[#8b5cf6]"} />
+        </div>
+
+        {/*Email + count*/}
+        <div className="flex-1 min-w-0 text-left">
+          <span className={`text-sm font-body font-medium truncate block ${isDark ? "text-white/80" : "text-gray-700"}`}>
+            {email}
+          </span>
+        </div>
+
+        {/*Result count badge*/}
+        <span className={`shrink-0 text-xs font-mono px-2 py-0.5 rounded-full ${isDark
+          ? "bg-purple-500/20 text-purple-300" : "bg-[#f0ebfe] text-[#8b5cf6]"}`}>
+          {count} {count === 1 ? "result" : "results"}
+        </span>
+
+        {/*Chevron*/}
+        <ChevronDown
+          size={14}
+          className={`shrink-0 transition-transform duration-200 ${isDark ? "text-white/30" : "text-gray-400"} 
+          ${open ? "rotate-0" : "-rotate-90"}`}
+        />
+      </button>
+
+      {/*Collapsible content*/}
+      {open && (
+        <div className={`px-4 pb-4 pt-1 border-t ${isDark ? "border-white/5" : "border-gray-100"}`}>
+          {folders.length > 0 && (
+            <div className={"mb-3"}>
+              <p className={`text-xs font-mono uppercase tracking-wider mb-2 ${isDark ? "text-white/20" : "text-gray-300"}`}>
+                Folders ({folders.length})
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                {folders.map((f) => (
+                  <FileItem key={`${f._driveId}:${f.id}`} file={f} isDark={isDark}
+                    onNavigate={onNavigate} onPreview={onPreview}
+                    onDownload={onDownload} onDelete={onDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {regularFiles.length > 0 && (
+            <div>
+              {folders.length > 0 && (
+                <p className={`text-xs font-mono uppercase tracking-wider mb-2 ${isDark ? "text-white/20" : "text-gray-300"}`}>
+                  Files ({regularFiles.length})
+                </p>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                {regularFiles.map((f) => (
+                  <FileItem key={`${f._driveId}:${f.id}`} file={f} isDark={isDark}
+                    onNavigate={onNavigate} onPreview={onPreview}
+                    onDownload={onDownload} onDelete={onDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -158,7 +239,7 @@ export default function FileGrid({
   files, loading, breadcrumbs, search, selectedDrive, currentFolderId,
   nextPageToken, onSearchChange, onNavigateFolder, onBreadcrumbClick,
   onPreview, onDownload, onDelete, onCreateFolder, onLoadMore, onUploadComplete,
-  driveId, isSearching,
+  driveId,
 }) {
   const { isDark } = useTheme();
   const [showSmartUpload, setShowSmartUpload] = useState(false);
@@ -177,8 +258,19 @@ export default function FileGrid({
     ].join(" / ")
     : "current folder";
 
-  //isSearching = cross-drive search is active - show drive badges on cards
-  const showDriveBadge = isSearching && !!search.trim();
+  const isSearchMode = !!search.trim();
+
+  //Group search results by drive email, preserving order of first appearance
+  const driveGroups = isSearchMode ? files.reduce((acc, file) => {
+    const key = file._driveEmail || "Unknown Drive";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(file);
+    return acc;
+  }, {}) : null;
+
+  const driveGroupEntries = driveGroups ? Object.entries(driveGroups) : [];
+  //Auto expand if 1 or 2 drives with results, collapse if many drives to avoid overwhelming
+  const autoExpand = driveGroupEntries.length <= 2;
 
   //Style helpers
   const topBarBorder = isDark ? "border-b border-white/5" : "border-b border-gray-100";
@@ -221,9 +313,11 @@ export default function FileGrid({
           {search.trim() && (
             <span className={`text-sm font-body ${mutedText}`}>
               Search results for <span className={accentText}>"{search}"</span>
-              <span className={`ml-2 text-xs font-mono ${isDark ? "text-white/15" : "text-gray-300"}`}>
-                — all drives
-              </span>
+              {driveGroupEntries.length > 0 && (
+                <span className={`ml-2 text-xs font-mono ${isDark ? "text-white/15" : "text-gray-300"}`}>
+                  — {driveGroupEntries.length} {driveGroupEntries.length === 1 ? "drive" : "drives"}
+                </span>
+              )}
             </span>
           )}
         </div>
@@ -287,10 +381,28 @@ export default function FileGrid({
           <div className="text-center py-20">
             <FileX size={40} className={`mx-auto mb-3 ${isDark ? "text-white/10" : "text-gray-200"}`} />
             <p className={`font-body ${mutedText}`}>
-              {search ? "No results found" : "This folder is empty"}
+              {search ? "No results found across any drive" : "This folder is empty"}
             </p>
           </div>
+        ) : isSearchMode ? (
+          //Search mode with drive groups
+          <div className="space-y-3">
+            {driveGroupEntries.map(([email, driveFiles]) => (
+              <DriveSection
+                key={email}
+                email={email}
+                files={driveFiles}
+                isDark={isDark}
+                defaultOpen={autoExpand}
+                onNavigate={onNavigateFolder}
+                onPreview={onPreview}
+                onDownload={onDownload}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
         ) : (
+          //Normal mode: flat grid
           <div className="space-y-4">
             {folders.length > 0 && (
               <div>
@@ -311,18 +423,13 @@ export default function FileGrid({
               <div>
                 <p className={`text-xs font-mono uppercase tracking-wider mb-2 ${mutedText}`}>
                   Files ({regularFiles.length})
-                  {showDriveBadge && (
-                    <span className={`ml-2 normal-case font-body ${isDark ? "text-white/20" : "text-gray-300"}`}>
-                      across all drives
-                    </span>
-                  )}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {regularFiles.map((f) => (
                     <FileItem key={`${f._driveId || ""}:${f.id}`} file={f} isDark={isDark}
                       onNavigate={onNavigateFolder} onPreview={onPreview}
                       onDownload={onDownload} onDelete={onDelete}
-                      showDriveBadge={showDriveBadge} />
+                    />
                   ))}
                 </div>
               </div>
