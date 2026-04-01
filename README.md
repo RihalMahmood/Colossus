@@ -1,4 +1,4 @@
-# 🏛️ Colossus
+# Colossus
 
 <p align="center">
   <img src="./frontend/Colossus/public/images/icon_nobg.png" alt="Logo" width="150" />
@@ -15,7 +15,7 @@
 
 ---
 
-## ✨ What is Colossus?
+## What is Colossus?
 
 Every free Google account comes with **15 GB** of Drive storage. Colossus lets you connect *any number* of Google accounts and treats them as a single, massive drive.
 
@@ -27,7 +27,7 @@ No subscriptions. No paid tiers. Just your own Google accounts, unified.
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Unified Storage Pool** — Browse, search, and manage files across all connected drives from one interface
 - **Smart Auto-Chunking** — Files too large for a single drive are automatically split across multiple drives and reassembled transparently on download
@@ -39,7 +39,7 @@ No subscriptions. No paid tiers. Just your own Google accounts, unified.
 
 ---
 
-## 🖥️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -52,7 +52,7 @@ No subscriptions. No paid tiers. Just your own Google accounts, unified.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 colossus/
@@ -82,7 +82,7 @@ colossus/
 
 ---
 
-## ⚙️ Setup & Installation
+## Setup & Installation
 
 ### Prerequisites
 
@@ -148,7 +148,7 @@ Visit `http://localhost:5173` 🎉
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 ### Auth
 
@@ -179,7 +179,7 @@ Visit `http://localhost:5173` 🎉
 
 ---
 
-## 🧩 How Chunking Works
+## How Chunking Works
 
 ```
 Upload Request
@@ -209,7 +209,7 @@ Each chunk's location (drive account + Google file ID + byte range) is stored in
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Folder/directory support
 - [ ] File previews (images, PDFs, video)
@@ -221,7 +221,7 @@ Each chunk's location (drive account + Google file ID + byte range) is stored in
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
@@ -233,7 +233,7 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ---
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
