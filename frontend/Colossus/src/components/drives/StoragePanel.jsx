@@ -82,7 +82,7 @@ export default function StoragePanel({ onConnectDrive }) {
                 { label: "Free", value: formatBytes(totalStorage.free), color: statColors[2] },
               ].map((s) => (
                 <div key={s.label} className={`${card} p-4 text-center`}>
-                  <div className={`font-display text-2xl font-bold ${s.color}`}>{s.value}</div>
+                  <div className={`font-mono text-2xl font-semibold tracking-tight ${s.color}`}>{s.value}</div>
                   <div className={`text-xs mt-1 font-body ${textSub}`}>{s.label}</div>
                 </div>
               ))}

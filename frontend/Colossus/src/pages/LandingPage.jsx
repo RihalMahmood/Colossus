@@ -38,6 +38,13 @@ export default function LandingPage() {
 
   const logoSrc = isDark ? "/images/purple_nobg.png" : "/images/lavender_nobg.png";
 
+  //Space Grotesk light - techy, geometric, refined at large sizes
+  const heroFont = {
+    fontfamily: "'JetBrains Mono', monospace",
+    fontweight: "300",
+    letterspacing: "-0.04em",
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden font-body">
       {/*Navbar*/}
@@ -73,7 +80,8 @@ export default function LandingPage() {
           <span>Unlimited storage across all your Google Drives</span>
         </div>
 
-        <h1 className={`font-display text-6xl md:text-7xl font-extrabold leading-tight mb-6 ${t.text}`}>
+        {/*Hero Heading - Space Grotesk at weight 300*/}
+        <h1 className={`text-6xl md:text-7xl leading-tight mb-6 ${t.text}`} style={heroFont}>
           Many drives.{" "}
           <span className={`bg-clip-text text-transparent ${isDark ? "bg-gradient-to-r from-purple-400 to-violet-400" : "bg-gradient-to-r from-[#b89ef8] to-[#cab9fa]"}`}>
             One titan.
