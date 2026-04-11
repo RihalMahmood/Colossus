@@ -20,6 +20,7 @@ Now encodes { userId, csrfToken } in state and persists csrfToken to user docume
 */
 router.get("/connect", protect, async (req, res) => {
   try {
+    const source = req.query.source || "web";   //Web or Mobile
     //Generate a random CSRF token for this OAuth session
     const csrfToken = randomBytes(24).toString("hex");
 
@@ -29,7 +30,7 @@ router.get("/connect", protect, async (req, res) => {
 
     //Encode both userId and csrfToken into the state param
     const state = Buffer.from(
-      JSON.stringify({ userId: req.user._id.toString(), csrfToken })
+      JSON.stringify({ userId: req.user._id.toString(), csrfToken, source })
     ).toString("base64");
 
     const url = getAuthUrl(state);
@@ -48,8 +49,18 @@ Now verifies the CSRF token before exchanging the code for tokens.
 router.get("/oauth/callback", async (req, res) => {
   const { code, state, error } = req.query;
 
+  let source = "web";   //Default to web
+  try {
+    const parsed = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
+    source = parsed.source || "web";
+  } catch (_) { }
+
+  const mobileBase = process.env.MOBILE_CLIENT_URL || "colossus://drive-callback";
+  const webBase = process.env.WEB_CLIENT_URL || "http://localhost:5173";
+  const clientBase = source === "mobile" ? mobileBase : webBase;
+
   if (error || !code || !state) {
-    return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=access_denied`);
+    return res.redirect(`${clientBase}${source === "mobile" ? "" : "/dashboard"}?drive_error=access_denied`);
   }
 
   try {
@@ -58,12 +69,12 @@ router.get("/oauth/callback", async (req, res) => {
     try {
       parsedState = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
     } catch {
-      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=invalid_state`);
+      return res.redirect(`${clientBase}${source === "mobile" ? "" : "/dashboard"}?drive_error=invalid_state`);
     }
 
     const { userId, csrfToken } = parsedState;
     if (!userId || !csrfToken) {
-      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=invalid_state`);
+      return res.redirect(`${clientBase}${source === "mobile" ? "" : "/dashboard"}?drive_error=invalid_state`);
     }
 
     //Find the platform user
@@ -71,12 +82,12 @@ router.get("/oauth/callback", async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=user_not_found`);
+      return res.redirect(`${clientBase}${source === "mobile" ? "" : "/dashboard"}?drive_error=user_not_found`);
     }
 
     //Verify the CSRF token matches what we stored at /connect time
     if (!user.oauthCsrfToken || user.oauthCsrfToken !== csrfToken) {
-      return res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=csrf_mismatch`);
+      return res.redirect(`${clientBase}${source === "mobile" ? "" : "/dashboard"}?drive_error=csrf_mismatch`);
     }
 
     //Clear the used CSRF token immediately (one-time use)
@@ -95,8 +106,9 @@ router.get("/oauth/callback", async (req, res) => {
 
     if (alreadyConnected) {
       await user.save();
+      const dest = source === "mobile" ? mobileBase : `${webBase}/dashboard`;
       return res.redirect(
-        `${process.env.CLIENT_URL}/dashboard?drive_error=already_connected&email=${googleUser.email}`
+        `${dest}?drive_error=already_connected&email=${googleUser.email}`
       );
     }
 
@@ -112,12 +124,16 @@ router.get("/oauth/callback", async (req, res) => {
 
     await user.save();
 
-    res.redirect(
-      `${process.env.CLIENT_URL}/dashboard?drive_connected=true&email=${googleUser.email}`
-    );
+    //Redirect: mobile gets deep link, web gets dashboard URL
+    const successDest = source === "mobile"
+      ? `${mobileBase}?drive_connected=true&email=${googleUser.email}`
+      : `${webBase}/dashboard?drive_connected=true&email=${googleUser.email}`;
+
+    res.redirect(successDest);
   } catch (err) {
     console.error("OAuth callback error:", err);
-    res.redirect(`${process.env.CLIENT_URL}/dashboard?drive_error=server_error`);
+    const dest = source === "mobile" ? mobileBase : `${webBase}/dashboard`;
+    res.redirect(`${dest}?drive_error=server_error`);
   }
 });
 
