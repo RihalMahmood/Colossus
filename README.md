@@ -6,14 +6,14 @@
 
 ### Many drives. One titan.
 
-**Colossus** is an open-source cloud storage platform that merges multiple Google Drive accounts into a single, unified storage pool. Connect as many Google Drive accounts as you want — Colossus handles the rest, automatically splitting large files across drives and reassembling them seamlessly on download.
+**Colossus** is an open-source cloud storage platform that merges multiple Google Drive accounts into a single, unified storage pool. Connect as many Google Drive accounts as you want - Colossus handles the rest, automatically splitting large files across drives and reassembling them seamlessly on download.
 
 ![License](https://img.shields.io/badge/license-MIT-6633ee?style=flat-square&labelColor=111)
 ![Stack](https://img.shields.io/badge/stack-MERN-6633ee?style=flat-square&labelColor=111)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-6633ee?style=flat-square&labelColor=111)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-6633ee?style=flat-square&labelColor=111)
 
----
+--
 
 ## What is Colossus?
 
@@ -29,13 +29,13 @@ No subscriptions. No paid tiers. Just your own Google accounts, unified.
 
 ## Features
 
-- **Unified Storage Pool** — Browse, search, and manage files across all connected drives from one interface
-- **Smart Auto-Chunking** — Files too large for a single drive are automatically split across multiple drives and reassembled transparently on download
-- **Storage Intelligence** — Colossus always writes to the drive with the most free space first, minimizing unnecessary splits
-- **Secure Auth** — Platform login via JWT + Google Drive connected via OAuth 2.0 (your credentials never touch our servers)
-- **Storage Dashboard** — See total, used, and free space across all drives individually and combined
-- **File Management** — Upload via drag & drop, search by name, download (with auto-merge for chunked files), and delete
-- **Glassmorphism UI** — Dark, premium interface built with Tailwind CSS + DaisyUI
+- **Unified Storage Pool** - Browse, search, and manage files across all connected drives from one interface
+- **Smart Auto-Chunking** - Files too large for a single drive are automatically split across multiple drives and reassembled transparently on download
+- **Storage Intelligence** - Colossus always writes to the drive with the most free space first, minimizing unnecessary splits
+- **Secure Auth** - Platform login via JWT + Google Drive connected via OAuth 2.0 (your credentials never touch our servers)
+- **Storage Dashboard** - See total, used, and free space across all drives individually and combined
+- **File Management** - Upload via drag & drop, search by name, download (with auto-merge for chunked files), and delete
+- **Glassmorphism UI** - Dark, premium interface built with Tailwind CSS + DaisyUI
 
 ---
 
@@ -107,7 +107,7 @@ colossus/
 
 ---
 
-### Step 2 — Backend
+### Step 2 - Backend
 
 ```bash
 cd backend
@@ -136,7 +136,7 @@ npm run dev
 
 ---
 
-### Step 3 — Frontend
+### Step 3 - Frontend
 
 ```bash
 cd frontend
@@ -235,7 +235,7 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
