@@ -37,26 +37,19 @@ export default function RegisterPage() {
   return (
     <div className="bg-[#0E0E0E] text-[#e5e2e1] min-h-screen flex flex-col items-center justify-center overflow-hidden font-body">
 
-      {/*Background glows*/}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#d1bcff]/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#4edea3]/5 blur-[120px]" />
+      {/*Background Image*/}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <img
+          src="/images/bg-login.png"
+          alt=""
+          className="w-full h-full object-cover opacity-10"
+        />
       </div>
 
-      {/*Decorative side images*/}
-      <div className="fixed top-0 right-0 w-1/3 h-full overflow-hidden opacity-20 pointer-events-none">
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyPVbKeSPpPVc_IQLgPC3tMAdO-HrNkkK0YDB0m3qfZ1LzM8-tfkRsOR0V0raQZvIklUTs_ISyvN3gCNuCfiVhRRVdMEVoFvgXmjS3hjkTtWSNFdZswRP58X0wn59DFRDwcSTvfovwk_nMJWCfztLJcKJATjXbnROjnMii01PuPDvRn2sJyQpWdwLI3khd_LyY7uETpLGK3EomSegr0ZI1c2peiDo00sezbRX4V2ywfYPv0s2yBlcQo4WD1fY-V1Q3kKvc1gGRQQMc"
-          alt=""
-          className="h-full object-cover grayscale brightness-50"
-        />
-      </div>
-      <div className="fixed bottom-0 left-0 w-1/4 h-1/2 overflow-hidden opacity-10 pointer-events-none">
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlWWANN2VX3PhFM_QqwHj7sJkFGDXueYAZkDWobqFgwCWXevU89izpcEqN162iOlGoCvcr8prVJYIZ27QF1edpzZzAEtkduyJr2yPIWZuWQ9NxoLpUsiPGeg9o1Dl_yAI6JmQDD8Nosnu6DJ06d71s4IK_5a2bG5XIPrMqjRQ3mAbg0dUNp5f33-szFheAGMDlF5r7uuKlip_bXZZQ8ULCvfoCaO5mhMlQvltEMQHxmKMZsdBk1kacr9KER0UBtHF8xUmki4ZX5hhr"
-          alt=""
-          className="w-full object-cover grayscale brightness-50"
-        />
+      {/*Ambient Glow Blobs*/}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#d1bcff]/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#a277ff]/10 blur-[120px]" />
       </div>
 
       {/*Nav*/}
@@ -182,12 +175,12 @@ export default function RegisterPage() {
         <div className="mt-8 flex justify-center items-center gap-4 opacity-40">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm">shield</span>
-            <span className="text-[10px] font-label tracking-tighter">AES-256 ENCRYPTION</span>
+            <span className="text-[10px] font-label tracking-tighter">JWT Protected</span>
           </div>
           <div className="w-1 h-1 rounded-full bg-[#4a4454]" />
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm">verified_user</span>
-            <span className="text-[10px] font-label tracking-tighter">ZERO-KNOWLEDGE ARCHITECTURE</span>
+            <span className="text-[10px] font-label tracking-tighter">OAuth 2.0</span>
           </div>
         </div>
       </main>
