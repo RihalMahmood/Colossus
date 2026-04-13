@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const https = require("https");
 const { Readable } = require("stream");
 const { protect } = require("../middleware/authMiddleware");
 //Use the shared getDriveClient from googleDrive.js which has debounced save.
@@ -361,7 +362,7 @@ router.get("/:driveId/search", protect, async (req, res) => {
     const resp = await driveClient.files.list({
       q: `name contains '${safeQ}' and trashed = false`,
       fields:
-        "files(id, name, mimeType, size, modifiedTime, thumbnailLink, parents)",
+        "files(id, name, mimeType, size, modifiedTime, thumbnailLink, webViewLink, parents)",
       orderBy: "modifiedTime desc",
       pageSize: Math.min(Number(pageSize) || 50, 200),
     });
@@ -375,12 +376,87 @@ router.get("/:driveId/search", protect, async (req, res) => {
       size: f.size ? Number(f.size) : null,
       modifiedTime: f.modifiedTime,
       thumbnailLink: f.thumbnailLink || null,
+      webViewLink: f.webViewLink || null,
       parents: f.parents || [],
     }));
 
     res.json({ success: true, items });
   } catch (err) {
     sendError(res, err);
+  }
+});
+
+/*
+GET /api/drive-explorer/:driveId/files/:fileId/thumbnail
+
+Proxy endpoint to fetch file thumbnails with authentication.
+This solves CORS and authentication issues with direct Google Drive thumbnail URLs.
+
+Response: Image file (PNG, JPEG) with appropriate Content-Type header
+*/
+router.get("/:driveId/files/:fileId/thumbnail", protect, async (req, res) => {
+  try {
+    const driveSubdoc = getOwnedDrive(req.user, req.params.driveId);
+    const driveClient = await getDriveClient(driveSubdoc, req.user);
+
+    //Get the file's thumbnailLink and metadata
+    const meta = await driveClient.files.get({
+      fileId: req.params.fileId,
+      fields: "id, mimeType, name, thumbnailLink, webViewLink",
+    });
+
+    //For folders, return error
+    if (meta.data.mimeType === "application/vnd.google-apps.folder") {
+      return res.status(404).json({ success: false, message: "Folders do not have thumbnails" });
+    }
+
+    //If no thumbnail available, return 404
+    if (!meta.data.thumbnailLink) {
+      return res.status(404).json({ success: false, message: "Thumbnail not available for this file" });
+    }
+
+    //Proxy the thumbnail by fetching it with the authenticated client
+    //Google Drive thumbnailLink already includes auth if accessed via the authenticated client
+    try {
+      const urlObj = new URL(meta.data.thumbnailLink);
+      
+      //Add access token to the request
+      const token = driveClient._options.auth.credentials.access_token;
+      
+      const proxyReq = https.get(
+        {
+          hostname: urlObj.hostname,
+          path: urlObj.pathname + urlObj.search,
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "User-Agent": "Colossus/1.0",
+          },
+          timeout: 10000,
+        },
+        (imgRes) => {
+          res.setHeader("Cache-Control", "public, max-age=86400");  //Cache for 24 hours
+          res.setHeader("Content-Type", imgRes.headers["content-type"] || "image/jpeg");
+          if (imgRes.headers["content-length"]) {
+            res.setHeader("Content-Length", imgRes.headers["content-length"]);
+          }
+          
+          imgRes.pipe(res);
+        }
+      );
+
+      proxyReq.on("error", (err) => {
+        console.error("[Thumbnail HTTPS]", err?.message);
+        res.status(500).json({ success: false, message: "Failed to fetch thumbnail" });
+      });
+
+    } catch (httpsErr) {
+      console.error("[Thumbnail Proxy]", httpsErr?.message);
+      res.status(500).json({ success: false, message: "Thumbnail service error" });
+    }
+  } catch (err) {
+    //If metadata fetch fails
+    console.error("[Thumbnail Metadata]", err?.message || err);
+    res.status(404).json({ success: false, message: "File not found" });
   }
 });
 

@@ -250,13 +250,16 @@ export default function DashboardPage() {
                             const { Icon: ResultIcon, color } = item.isFolder
                               ? { Icon: FolderOpen, color: "text-[#d1bcff]" }
                               : getFileIcon(item.name, item.mimeType);
+                            const thumbnailUrl = item.thumbnailLink 
+                              ? `/api/drive-explorer/${driveId}/files/${item.id}/thumbnail`
+                              : null;
                             return (
                               <div key={item.id}
                                 className="group relative rounded-xl border border-[#4a4454]/20 p-4 hover:border-[#d1bcff]/30 transition-all"
                                 style={glass}>
-                                {item.thumbnailLink ? (
+                                {thumbnailUrl ? (
                                   <div className="w-full h-14 rounded-lg overflow-hidden mb-3 bg-[#201f1f]">
-                                    <img src={item.thumbnailLink} alt={item.name} className="w-full h-full object-cover" />
+                                    <img src={thumbnailUrl} alt={item.name} className="w-full h-full object-cover" />
                                   </div>
                                 ) : (
                                   <div className={`w-full h-14 rounded-lg mb-3 flex items-center justify-center bg-[#201f1f] ${color}`}>
