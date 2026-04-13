@@ -1,144 +1,208 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Cloud, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import ThemeToggle from "../components/ui/ThemeToggle";
+import api from "../utils/api";
 import toast from "react-hot-toast";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
-  const { isDark } = useTheme();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
-      return;
-    }
+    if (!name || !email || !password) { toast.error("Please fill in all fields"); return; }
+    if (password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     setLoading(true);
     try {
-      const res = await register(form.name, form.email, form.password);
-      toast.success(res.message || "Account created!");
-      navigate("/dashboard");
+      const res = await api.post("/auth/register", { name, email, password });
+      if (res.data.success) {
+        login(res.data.token, res.data.user);
+        toast.success("Account created successfully!");
+        navigate("/dashboard");
+      } else {
+        toast.error(res.data.message || "Registration failed");
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed. Try again.");
+      toast.error(err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const t = isDark ? {
-    text: "text-white",
-    textMuted: "text-white/40",
-    textSub: "text-white/60",
-    card: "glass-card-dark",
-    input: "input-glass-dark",
-    btn: "btn-glow-dark",
-    link: "text-purple-400 hover:text-purple-300",
-    iconColor: "text-white/30",
-    eyeColor: "text-white/30 hover:text-white/60"
-  } : {
-    text: "text-gray-900",
-    textMuted: "text-gray-400",
-    textSub: "text-gray-500",
-    card: "glass-card-light",
-    input: "input-glass-light",
-    btn: "btn-glow-light",
-    link: "text-[#8b5cf6] hover:text-[#a78bfa]",
-    iconColor: "text-gray-400",
-    eyeColor: "text-gray-400 hover:text-gray-500"
-  };
-
   return (
-    <div className="relative min-h-screen flex items-center justify-center font-body">
-      <div className="absolute top-6 right-8"><ThemeToggle /></div>
+    <div className="bg-[#0E0E0E] text-[#e5e2e1] min-h-screen flex flex-col items-center justify-center overflow-hidden font-body">
 
-      <div className="w-full max-w-md px-4 animate-slide-up">
-        <div className="flex flex-col items-center mb-8">
-          <div className={
-            `w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ?
-              "bg-gradient-to-br from-purple-500 to-violet-700" : "bg-gradient-to-br from-[#b89ef8] to-[#cab9fa]"
-            }`}>
-            <Cloud size={24} className="text-white" />
-          </div>
-          <h1 className={`font-display text-3xl font-bold ${t.text}`}>Create account</h1>
-          <p className={`mt-1 font-body ${t.textMuted}`}>Rise to infinite storage</p>
+      {/*Background glows*/}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#d1bcff]/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#4edea3]/5 blur-[120px]" />
+      </div>
+
+      {/*Decorative side images*/}
+      <div className="fixed top-0 right-0 w-1/3 h-full overflow-hidden opacity-20 pointer-events-none">
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyPVbKeSPpPVc_IQLgPC3tMAdO-HrNkkK0YDB0m3qfZ1LzM8-tfkRsOR0V0raQZvIklUTs_ISyvN3gCNuCfiVhRRVdMEVoFvgXmjS3hjkTtWSNFdZswRP58X0wn59DFRDwcSTvfovwk_nMJWCfztLJcKJATjXbnROjnMii01PuPDvRn2sJyQpWdwLI3khd_LyY7uETpLGK3EomSegr0ZI1c2peiDo00sezbRX4V2ywfYPv0s2yBlcQo4WD1fY-V1Q3kKvc1gGRQQMc"
+          alt=""
+          className="h-full object-cover grayscale brightness-50"
+        />
+      </div>
+      <div className="fixed bottom-0 left-0 w-1/4 h-1/2 overflow-hidden opacity-10 pointer-events-none">
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlWWANN2VX3PhFM_QqwHj7sJkFGDXueYAZkDWobqFgwCWXevU89izpcEqN162iOlGoCvcr8prVJYIZ27QF1edpzZzAEtkduyJr2yPIWZuWQ9NxoLpUsiPGeg9o1Dl_yAI6JmQDD8Nosnu6DJ06d71s4IK_5a2bG5XIPrMqjRQ3mAbg0dUNp5f33-szFheAGMDlF5r7uuKlip_bXZZQ8ULCvfoCaO5mhMlQvltEMQHxmKMZsdBk1kacr9KER0UBtHF8xUmki4ZX5hhr"
+          alt=""
+          className="w-full object-cover grayscale brightness-50"
+        />
+      </div>
+
+      {/*Nav*/}
+      <nav className="fixed top-0 w-full flex justify-between items-center px-8 py-6 bg-transparent backdrop-blur-xl z-50">
+        <Link to="/"
+          className="text-2xl font-bold tracking-tighter text-[#d1bcff] font-headline uppercase hover:opacity-80 transition-opacity">
+          COLOSSUS
+        </Link>
+        <div className="flex gap-6 items-center">
+          <span className="material-symbols-outlined text-zinc-500 cursor-pointer hover:text-[#d1bcff] transition-colors">help</span>
+          <span className="material-symbols-outlined text-zinc-500 cursor-pointer hover:text-[#d1bcff] transition-colors">info</span>
         </div>
+      </nav>
 
-        <div className={t.card + " p-8"}>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${t.textSub}`}>Full name</label>
-              <div className="relative">
-                <User size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.iconColor}`} />
+      {/*Register card*/}
+      <main className="relative z-10 w-full max-w-md px-6">
+        <div className="rounded-xl p-10 border border-[#4a4454]/10"
+          style={{
+            background: "rgba(19,19,19,0.7)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 20px 40px rgba(141,91,246,0.05), 0 0 60px rgba(141,91,246,0.1)",
+          }}>
+
+          {/*Header*/}
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#d1bcff] to-[#a277ff] rounded-xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(209,188,255,0.3)]">
+              <span className="material-symbols-outlined text-[#3d0090] text-4xl"
+                style={{ fontVariationSettings: "'FILL' 1" }}>
+                cloud_done
+              </span>
+            </div>
+            <h1 className="font-headline text-3xl font-bold text-[#d1bcff] tracking-tight text-center uppercase">
+              Join the Monolith
+            </h1>
+            <p className="text-[#ccc3d7] font-label text-sm mt-2 tracking-wide uppercase opacity-70">
+              Secure your digital legacy
+            </p>
+          </div>
+
+          {/*Form*/}
+          <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/*Full Name*/}
+            <div className="space-y-1.5">
+              <label className="text-[#ccc3d7] text-[10px] uppercase font-bold tracking-widest ml-1">
+                Full Name
+              </label>
+              <div className="relative group">
                 <input
                   type="text"
-                  placeholder="Rihal Mahmood"
-                  className={`${t.input} pl-11`}
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  minLength={2}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="ARCHITECT NAME"
+                  className="w-full bg-[#0e0e0e] border-none rounded-lg py-4 pl-4 pr-12 text-[#e5e2e1] placeholder:text-zinc-700 focus:ring-1 focus:ring-[#d1bcff]/30 transition-all outline-none font-mono text-sm"
                 />
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#d1bcff] transition-colors text-xl">
+                  person
+                </span>
               </div>
             </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${t.textSub}`}>Email</label>
-              <div className="relative">
-                <Mail size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.iconColor}`} />
+            {/*Email*/}
+            <div className="space-y-1.5">
+              <label className="text-[#ccc3d7] text-[10px] uppercase font-bold tracking-widest ml-1">
+                Email Address
+              </label>
+              <div className="relative group">
                 <input
                   type="email"
-                  placeholder="rihal@example.com"
-                  className={`${t.input} pl-11`}
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ACCESS@VAULT.COM"
+                  className="w-full bg-[#0e0e0e] border-none rounded-lg py-4 pl-4 pr-12 text-[#e5e2e1] placeholder:text-zinc-700 focus:ring-1 focus:ring-[#d1bcff]/30 transition-all outline-none font-mono text-sm"
                 />
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#d1bcff] transition-colors text-xl">
+                  alternate_email
+                </span>
               </div>
             </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${t.textSub}`}>Password</label>
-              <div className="relative">
-                <Lock size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.iconColor}`} />
+            {/*Password*/}
+            <div className="space-y-1.5">
+              <label className="text-[#ccc3d7] text-[10px] uppercase font-bold tracking-widest ml-1">
+                Encryption Key
+              </label>
+              <div className="relative group">
                 <input
                   type={showPass ? "text" : "password"}
-                  placeholder="Min. 6 characters"
-                  className={`${t.input} pl-11 pr-12`}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required
-                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#0e0e0e] border-none rounded-lg py-4 pl-4 pr-12 text-[#e5e2e1] placeholder:text-zinc-700 focus:ring-1 focus:ring-[#d1bcff]/30 transition-all outline-none font-mono text-sm"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${t.eyeColor}`}
-                >
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button type="button" onClick={() => setShowPass(!showPass)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-[#d1bcff] transition-colors">
+                  <span className="material-symbols-outlined text-xl">
+                    {showPass ? "visibility_off" : "visibility"}
+                  </span>
                 </button>
               </div>
             </div>
 
-            <button type="submit" className={`${t.btn} w-full mt-2`} disabled={loading}>
-              {loading ? <span className="loading loading-spinner loading-sm"></span> : "Create account"}
+            {/*Submit*/}
+            <button type="submit" disabled={loading}
+              className="w-full bg-gradient-to-r from-[#d1bcff] to-[#a277ff] text-[#3d0090] font-headline font-bold py-4 rounded-lg uppercase tracking-widest hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_10px_20px_rgba(162,119,255,0.2)] mt-4 disabled:opacity-60 disabled:cursor-not-allowed">
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
-          <p className={`text-center text-sm mt-6 font-body ${t.textMuted}`}>
-            Already have an account?{" "}
-            <Link to="/login" className={`font-medium transition-colors ${t.link}`}>
-              Sign in
-            </Link>
-          </p>
+          {/*Footer link*/}
+          <div className="mt-8 text-center">
+            <p className="text-[#ccc3d7] text-xs">
+              ALREADY HAVE AN ACCOUNT?{" "}
+              <Link to="/login"
+                className="text-[#d1bcff] font-bold hover:underline ml-1 underline-offset-4 decoration-[#d1bcff]/30">
+                LOGIN
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
+
+        {/*Security badge*/}
+        <div className="mt-8 flex justify-center items-center gap-4 opacity-40">
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm">shield</span>
+            <span className="text-[10px] font-label tracking-tighter">AES-256 ENCRYPTION</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-[#4a4454]" />
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm">verified_user</span>
+            <span className="text-[10px] font-label tracking-tighter">ZERO-KNOWLEDGE ARCHITECTURE</span>
+          </div>
+        </div>
+      </main>
+
+      {/*Footer*/}
+      <footer className="fixed bottom-0 w-full flex justify-center pb-10 z-50">
+        <div className="flex gap-8 items-center text-zinc-600 text-xs tracking-widest uppercase">
+          {["Privacy", "Terms", "Security"].map(item => (
+            <span key={item}
+              className="opacity-80 hover:opacity-100 hover:text-[#d1bcff] transition-all cursor-pointer">
+              {item}
+            </span>
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }

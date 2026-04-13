@@ -1,7 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { ThemeProvider } from "./context/ThemeContext";
-import Background from "./components/ui/Background";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -20,7 +18,6 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <>
-      <Background />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -34,10 +31,8 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
-    </ThemeProvider>
   );
 }

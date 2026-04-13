@@ -1,271 +1,275 @@
-import { useState, useEffect, useCallback } from "react";
-import { useTheme } from "../../context/ThemeContext";
-import FolderTree from "./FolderTree";
-import FileGrid from "./FileGrid";
-import FilePreviewModal from "./FilePreviewModal";
+import { useState, useCallback } from "react";
+import {
+  FolderOpen, HardDrive, CloudUpload, Search, X, Loader,
+  CloudOff, ChevronRight, Home, FolderPlus, Eye, ExternalLink,
+  Download, Trash2, Compass, ArrowLeft,
+} from "lucide-react";
+import { glass, formatBytes, getFileIcon } from "../dashboard/dashboardUtils";
+import { DeleteModal, CreateFolderModal } from "../dashboard/Modals";
+import PreviewModal from "../dashboard/PreviewModals";
+import UploadModal from "../dashboard/UploadModal";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 
-/*DriveExplorer orchestrates the two-panel file browser:
-  Left  — FolderTree (per-drive folder navigation)
-  Right — FileGrid   (file listing + both upload modes)
-
-Upload responsibility has been moved entirely into FileGrid
-Cross-drive search:
-  When a search query is active, ALL connected drives are queried in parallel
-  via Promise.allSettled. Each result is tagged with _driveId and _driveEmail
-  so that handleDownload / handlePreview / handleDelete know which drive to
-  call — even when results come from different drives.
-
-  Outside of search mode, actions always use selectedDrive._id as before*/
-export default function DriveExplorer() {
-  const { isDark } = useTheme();
-  const [drives, setDrives] = useState([]);
-  const [loadingDrives, setLoadingDrives] = useState(true);
+export default function DriveExplorer({ drives }) {
   const [selectedDrive, setSelectedDrive] = useState(null);
-  const [currentFolderId, setCurrentFolderId] = useState("root");
-  const [breadcrumbs, setBreadcrumbs] = useState([{ id: "root", name: "My Drive" }]);
-  const [files, setFiles] = useState([]);
-  const [loadingFiles, setLoadingFiles] = useState(false);
-  const [nextPageToken, setNextPageToken] = useState(null);
-  const [search, setSearch] = useState("");
+  const [folderStack, setFolderStack] = useState([]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  //Fetch connected drives on mount
-  useEffect(() => {
-    const fetchDrives = async () => {
-      try {
-        const res = await api.get("/drives");
-        const driveList = res.data.drives || [];
-        setDrives(driveList);
-        if (driveList.length > 0) setSelectedDrive(driveList[0]);
-      } catch {
-        toast.error("Failed to load drives.");
-      } finally {
-        setLoadingDrives(false);
-      }
-    };
-    fetchDrives();
+  const currentFolderId = folderStack.length > 0
+    ? folderStack[folderStack.length - 1].id
+    : "root";
+
+  const loadFolder = useCallback(async (driveId, folderId = "root") => {
+    setLoading(true); setSearchResults(null); setSearchQuery("");
+    try {
+      const res = await api.get(`/drive-explorer/${driveId}/files`, { params: { folderId, pageSize: 100 } });
+      setItems(res.data.items || []);
+    } catch { toast.error("Failed to load folder"); }
+    finally { setLoading(false); }
   }, []);
 
-  //Fetch files when drive or folder changes
-  const fetchFiles = useCallback(async (driveId, folderId, pageToken = null) => {
-    if (!driveId) return;
-    setLoadingFiles(true);
+  const selectDrive = (drive) => {
+    setSelectedDrive(drive); setFolderStack([]);
+    loadFolder(drive._id, "root");
+  };
+
+  const openFolder = (item) => {
+    setFolderStack(prev => [...prev, { id: item.id, name: item.name }]);
+    loadFolder(selectedDrive._id, item.id);
+  };
+
+  const navigateTo = (index) => {
+    const newStack = index < 0 ? [] : folderStack.slice(0, index + 1);
+    setFolderStack(newStack);
+    const folderId = newStack.length > 0 ? newStack[newStack.length - 1].id : "root";
+    loadFolder(selectedDrive._id, folderId);
+  };
+
+  const handleSearch = async (q) => {
+    setSearchQuery(q);
+    if (!q.trim()) { setSearchResults(null); return; }
+    setSearching(true);
     try {
-      const res = await api.get(`/drive-explorer/${driveId}/files`, {
-        params: { folderId, pageSize: 100, ...(pageToken && { pageToken }) },
-      });
-      setFiles((prev) => (pageToken ? [...prev, ...res.data.items] : res.data.items));
-      setNextPageToken(res.data.nextPageToken);
-    } catch {
-      toast.error("Failed to load files.");
-    } finally {
-      setLoadingFiles(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedDrive) {
-      setFiles([]);
-      setSearch("");
-      fetchFiles(selectedDrive._id, currentFolderId);
-    }
-  }, [selectedDrive, currentFolderId, fetchFiles]);
-
-  //Navigate into a folder from the file grid
-  const navigateToFolder = (folder) => {
-    setCurrentFolderId(folder.id);
-    setBreadcrumbs((prev) => {
-      const exists = prev.find((b) => b.id === folder.id);
-      if (exists) return prev.slice(0, prev.indexOf(exists) + 1);
-      return [...prev, { id: folder.id, name: folder.name }];
-    });
+      const res = await api.get(`/drive-explorer/${selectedDrive._id}/search`, { params: { q: q.trim(), pageSize: 50 } });
+      setSearchResults(res.data.items || []);
+    } catch { toast.error("Search failed"); }
+    finally { setSearching(false); }
   };
 
-  //Navigate via breadcrumb click
-  const navigateBreadcrumb = (crumb, index) => {
-    setCurrentFolderId(crumb.id);
-    setBreadcrumbs((prev) => prev.slice(0, index + 1));
-  };
-
-  //Navigate from folder tree (can switch drives)
-  const navigateFromTree = (folderId, folderName, driveObj) => {
-    if (driveObj._id !== selectedDrive?._id) {
-      setSelectedDrive(driveObj);
-    }
-    if (folderId === "root") {
-      setCurrentFolderId("root");
-      setBreadcrumbs([{ id: "root", name: "My Drive" }]);
-    } else {
-      setCurrentFolderId(folderId);
-      setBreadcrumbs([{ id: "root", name: "My Drive" }, { id: folderId, name: folderName }]);
-    }
-  };
-
-  /*Cross-drive search - queries all connected drives in parallel.
-  Why tag with _driveId / _driveEmail?
-    Outside search mode, every file in the grid belongs to selectedDrive, so
-    handleDownload/handlePreview/handleDelete just use selectedDrive._id.
-    But in search mode, result[0] might be from drive A and result[1] from
-    drive B. We tag each item at search time so the action handlers can always
-    resolve the correct drive regardless of which drive is "selected".*/
-  useEffect(() => {
-    if (!search.trim() || drives.length === 0) return;
-
-    const timer = setTimeout(async () => {
-      setSearching(true);
-
-      //Snapshot id and email as plain primitives right now, before any async work
-      const driveSnapshots = drives.map((drive) => ({
-        id: String(drive._id),
-        email: String(drive.email),
-      }));
-      try {
-        const results = await Promise.allSettled(
-          driveSnapshots.map(({ id, email }) =>  // destructure primitives — no object reference
-            api
-              .get(`/drive-explorer/${id}/search`, { params: { q: search } })
-              .then((response) =>
-                (response.data.items || []).map((item) => ({
-                  ...item,
-                  _driveId: id,
-                  _driveEmail: email,
-                }))
-              )
-          )
-        );
-
-        //Collect fulfilled results & silently skip drives that errored
-        const merged = results.flatMap((r) =>
-          r.status === "fulfilled" ? r.value : []
-        );
-
-        //Sort by most recently modified across all drives
-        merged.sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
-
-        setFiles(merged);
-      } catch {
-        toast.error("Search failed.");
-      } finally {
-        setSearching(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [search, drives]);
-
-  //When search is cleared, reload the current folder
-  useEffect(() => {
-    if (!search.trim() && selectedDrive) {
-      fetchFiles(selectedDrive._id, currentFolderId);
-    }
-  }, [search, selectedDrive, currentFolderId, fetchFiles]);
-
-  const handleCreateFolder = async (name) => {
+  const createFolder = async (name) => {
+    setShowCreateFolder(false);
     try {
-      await api.post(`/drive-explorer/${selectedDrive._id}/folders`, {
-        name,
-        parentId: currentFolderId,
-      });
+      await api.post(`/drive-explorer/${selectedDrive._id}/folders`, { name, parentId: currentFolderId });
       toast.success(`Folder "${name}" created`);
-      fetchFiles(selectedDrive._id, currentFolderId);
-    } catch {
-      toast.error("Failed to create folder.");
-    }
+      loadFolder(selectedDrive._id, currentFolderId);
+    } catch { toast.error("Failed to create folder"); }
   };
 
-  /*Action handlers: resolve driveId from the file's _driveId tag when in search
-  mode, otherwise fall back to selectedDrive._id for normal folder browsing.
-  Makes cross-drive search actions work correctly*/
-  const resolveDriveId = (file) => file._driveId || selectedDrive?._id;
-
-  const handleDelete = async (fileId, fileName, file = {}) => {
-    if (!confirm(`Move "${fileName}" to trash?`)) return;
-    const driveId = resolveDriveId(file);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/drive-explorer/${driveId}/files/${fileId}`);
-      toast.success(`"${fileName}" moved to trash`);
-      setFiles((prev) => prev.filter((f) => f.id !== fileId));
-    } catch {
-      toast.error("Failed to delete.");
-    }
+      await api.delete(`/drive-explorer/${selectedDrive._id}/files/${deleteTarget.id}`);
+      toast.success(`"${deleteTarget.name}" moved to trash`);
+      setDeleteTarget(null);
+      loadFolder(selectedDrive._id, currentFolderId);
+    } catch { toast.error("Failed to delete"); }
   };
 
-  const handleDownload = (fileId, fileName, file = {}) => {
-    const driveId = resolveDriveId(file);
+  const handleDownload = (item) => {
     const token = localStorage.getItem("colossus_token");
-    fetch(`/api/drive-explorer/${driveId}/files/${fileId}/download`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.blob())
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast.success(`Downloading "${fileName}"`);
-      })
-      .catch(() => toast.error("Download failed."));
+    const a = document.createElement("a");
+    a.href = `/api/drive-explorer/${selectedDrive._id}/files/${item.id}/download?token=${token}`;
+    a.download = item.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
-  const handlePreview = (file) => {
-    //Attach the resolved driveId onto the file object for FilePreviewModal
-    setPreviewFile({ ...file, driveId: resolveDriveId(file) });
-  };
+  const displayItems = searchResults !== null ? searchResults : items;
 
+  //No drive selected
+  if (!selectedDrive) {
+    return (
+      <div>
+        <h2 className="font-mono text-lg font-bold uppercase tracking-widest mb-6 flex items-center gap-3">
+          <span className="w-8 h-0.5 bg-purple-400" />
+          Drive Explorer
+        </h2>
+        {drives.length === 0 ? (
+          <div className="text-center py-16 text-slate-500 font-mono text-xs uppercase tracking-widest">
+            <HardDrive size={40} className="mx-auto mb-3 text-slate-700" />
+            No drives connected.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {drives.map(drive => (
+              <button key={drive._id} onClick={() => selectDrive(drive)}
+                className="p-5 rounded-xl border border-[#4a4454]/20 text-left hover:border-[#d1bcff]/30 hover:bg-[#d1bcff]/5 transition-all group"
+                style={glass}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#d1bcff]/10 flex items-center justify-center">
+                    <HardDrive size={18} className="text-[#d1bcff]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{drive.email}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">{formatBytes(drive.quota?.free)} free</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-slate-600 font-mono uppercase group-hover:text-[#d1bcff] transition-colors">
+                  <Compass size={10} /> Browse files
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  //Drive browser
   return (
-    <div className={`flex h-[calc(100vh-120px)] rounded-2xl overflow-hidden border
-      ${isDark ? "border-white/10" : "border-gray-200"}`}>
-
-      {/*Left — Folder Tree*/}
-      <div className={`w-60 shrink-0 border-r overflow-y-auto
-        ${isDark ? "border-white/5 bg-black/10" : "border-gray-100 bg-white/20"}`}>
-        <FolderTree
-          drives={drives}
-          loading={loadingDrives}
-          selectedDrive={selectedDrive}
-          currentFolderId={currentFolderId}
-          onNavigate={navigateFromTree}
-        />
+    <div>
+      {/*Header*/}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSelectedDrive(null)}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-white text-xs font-mono uppercase tracking-wider transition-colors">
+            <ArrowLeft size={14} /> All Drives
+          </button>
+          <span className="text-slate-700">/</span>
+          <span className="text-xs font-mono text-[#d1bcff] font-bold uppercase">{selectedDrive.email.split("@")[0]}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowCreateFolder(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4a4454]/30 text-slate-400 text-[10px] font-mono uppercase hover:border-[#d1bcff]/30 hover:text-[#d1bcff] transition-all">
+            <FolderPlus size={12} /> New Folder
+          </button>
+          <button onClick={() => setShowUpload(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#d1bcff]/10 border border-[#d1bcff]/20 text-[#d1bcff] text-[10px] font-mono uppercase hover:bg-[#d1bcff]/20 transition-all">
+            <CloudUpload size={12} /> Upload Here
+          </button>
+        </div>
       </div>
 
-      {/*Right — File Grid (owns both upload modes internally)*/}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <FileGrid
-          files={files}
-          loading={loadingFiles || searching}
-          breadcrumbs={breadcrumbs}
-          search={search}
-          selectedDrive={selectedDrive}
-          currentFolderId={currentFolderId}
-          nextPageToken={nextPageToken}
-          onSearchChange={setSearch}
-          onNavigateFolder={navigateToFolder}
-          onBreadcrumbClick={navigateBreadcrumb}
-          onPreview={handlePreview}
-          onDownload={handleDownload}
-          onDelete={handleDelete}
-          onCreateFolder={handleCreateFolder}
-          onLoadMore={() => fetchFiles(selectedDrive._id, currentFolderId, nextPageToken)}
-          onUploadComplete={() => fetchFiles(selectedDrive._id, currentFolderId)}
-          driveId={selectedDrive?._id}
-        />
+      {/*Breadcrumb*/}
+      <div className="flex items-center gap-1 text-xs font-mono mb-4 flex-wrap">
+        <button onClick={() => navigateTo(-1)}
+          className="flex items-center gap-1 text-slate-500 hover:text-[#d1bcff] transition-colors">
+          <Home size={12} /> Root
+        </button>
+        {folderStack.map((f, i) => (
+          <span key={f.id} className="flex items-center gap-1">
+            <ChevronRight size={10} className="text-slate-700" />
+            <button onClick={() => navigateTo(i)}
+              className={`${i === folderStack.length - 1 ? "text-[#d1bcff]" : "text-slate-500 hover:text-[#d1bcff]"} transition-colors`}>
+              {f.name}
+            </button>
+          </span>
+        ))}
       </div>
 
-      {/*File Preview Modal*/}
-      {previewFile && (
-        <FilePreviewModal
-          file={previewFile}
-          onClose={() => setPreviewFile(null)}
-          onDownload={handleDownload}
-        />
+      {/*Search*/}
+      <div className="relative mb-5">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+        <input value={searchQuery} onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search this drive..."
+          className="w-full bg-[#0e0e0e] border border-[#4a4454]/20 rounded-xl py-2.5 pl-9 pr-4 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-[#d1bcff]/30 transition-all" />
+        {searching && <Loader size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#d1bcff] animate-spin" />}
+        {searchResults !== null && !searching && (
+          <button onClick={() => { setSearchResults(null); setSearchQuery(""); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
+      {/*Grid*/}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {Array.from({ length: 10 }).map((_, i) => <div key={i} className="h-24 rounded-xl bg-[#201f1f] animate-pulse" />)}
+        </div>
+      ) : displayItems.length === 0 ? (
+        <div className="text-center py-16">
+          <CloudOff size={40} className="mx-auto mb-3 text-slate-700" />
+          <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">
+            {searchResults !== null ? "No results found" : "This folder is empty"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {displayItems.map(item => {
+            const { Icon: ItemIcon, color } = item.isFolder
+              ? { Icon: FolderOpen, color: "text-[#d1bcff]" }
+              : getFileIcon(item.name, item.mimeType);
+            const isPreviewable = item.mimeType?.startsWith("image/") ||
+              item.mimeType?.startsWith("video/") || item.mimeType?.startsWith("audio/") ||
+              item.mimeType === "application/pdf";
+
+            return (
+              <div key={item.id}
+                className="group relative rounded-xl border border-[#4a4454]/20 p-4 hover:border-[#d1bcff]/30 transition-all cursor-pointer"
+                style={glass}
+                onClick={() => item.isFolder && openFolder(item)}>
+                {item.thumbnailLink && !item.isFolder ? (
+                  <div className="w-full h-16 rounded-lg overflow-hidden mb-3 bg-[#201f1f]">
+                    <img src={item.thumbnailLink} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className={`w-full h-16 rounded-lg mb-3 flex items-center justify-center bg-[#201f1f] ${color}`}>
+                    <ItemIcon size={28} />
+                  </div>
+                )}
+                <p className="text-xs font-semibold text-white truncate mb-1">{item.name}</p>
+                <p className="text-[9px] text-slate-600 font-mono">
+                  {item.isFolder ? "Folder" : (item.size ? formatBytes(item.size) : "—")}
+                </p>
+
+                {!item.isFolder && (
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isPreviewable && (
+                      <button onClick={(e) => { e.stopPropagation(); setPreviewFile(item); }}
+                        className="p-1.5 rounded-lg bg-[#131313]/80 text-[#d1bcff] hover:bg-[#d1bcff]/20 transition-all" title="Preview">
+                        <Eye size={12} />
+                      </button>
+                    )}
+                    {item.webViewLink && (
+                      <a href={item.webViewLink} target="_blank" rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded-lg bg-[#131313]/80 text-slate-400 hover:bg-[#d1bcff]/20 hover:text-[#d1bcff] transition-all" title="Open in Drive">
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); handleDownload(item); }}
+                      className="p-1.5 rounded-lg bg-[#131313]/80 text-slate-400 hover:bg-[#d1bcff]/20 hover:text-[#d1bcff] transition-all" title="Download">
+                      <Download size={12} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
+                      className="p-1.5 rounded-lg bg-[#131313]/80 text-red-400 hover:bg-red-500/20 transition-all" title="Move to trash">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
+
+      {showCreateFolder && <CreateFolderModal onClose={() => setShowCreateFolder(false)} onConfirm={createFolder} />}
+      {showUpload && (
+        <UploadModal targetDriveId={selectedDrive._id} targetFolderId={currentFolderId}
+          onClose={() => setShowUpload(false)}
+          onSuccess={() => { setShowUpload(false); loadFolder(selectedDrive._id, currentFolderId); }} />
+      )}
+      {previewFile && <PreviewModal file={previewFile} driveId={selectedDrive._id} onClose={() => setPreviewFile(null)} />}
+      {deleteTarget && <DeleteModal fileName={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} />}
     </div>
   );
 }
