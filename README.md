@@ -208,7 +208,7 @@ Sort by free space (highest first)
 Each chunk's location (drive account + Google file ID + byte range) is stored in the `FileMetadata` collection, allowing perfect reassembly regardless of which drives were used.
 
 <p align="center">
-  <img src="./frontend/Colossus/public/images/flowchart.png" alt="flowchart" width="150" />
+  <img src="./frontend/Colossus/public/images/flowchart.png" alt="flowchart" />
 </p>
 
 ---
