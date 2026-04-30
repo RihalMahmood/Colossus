@@ -1,7 +1,7 @@
 # Colossus
 
 <p align="center">
-  <img src="./frontend/Colossus/public/images/icon_nobg.png" alt="Logo" width="150" />
+  <img src="./frontend/Colossus/public/images/Colossus3D.png" alt="Logo" width="150" />
 </p>
 
 ### Many drives. One titan.
